@@ -1,0 +1,136 @@
+{
+  "status": "pass",
+  "model_status": "needs_review",
+  "blender_version": "5.2.1 LTS",
+  "native_mesh_count": 582,
+  "native_bounds_m": [
+    [
+      -2.8312206268310547e-07,
+      0.0,
+      -0.20000000298023224
+    ],
+    [
+      14.699999809265137,
+      20.0,
+      6.199999809265137
+    ]
+  ],
+  "floor_roots": [
+    "Floor_1",
+    "Floor_2"
+  ],
+  "floor_elevations_m": [
+    0,
+    3.2
+  ],
+  "upper_courtyard_void": true,
+  "upper_stairwell_void": true,
+  "upper_porch_surface_m": [
+    6.800000190734863,
+    8.0,
+    3.2000017166137695
+  ],
+  "stairs": {
+    "direction": "west-east-west",
+    "entry_space": "porch",
+    "bounds": [
+      10750,
+      7420,
+      14420,
+      9820
+    ],
+    "entry_x": 9600,
+    "turn_x": 13270,
+    "flight_width": 1160,
+    "gap": 80,
+    "rise": 3200,
+    "riser_count": 20,
+    "riser_height": 160.0,
+    "tread_depth": 280,
+    "flight_clear_width": 1110,
+    "landing_depth": 1150,
+    "slope_degrees": 29.74,
+    "upper_hole": [
+      10750,
+      7380,
+      14420,
+      9860
+    ],
+    "evidence": "inferred",
+    "source": "用户最新确认从门廊上楼，取消厅堂直通楼梯的敞口；左右折返走向保留，踏步与平台尺寸为设计建议"
+  },
+  "window_sill_head_ray_checks": [
+    "F1/west-master",
+    "F1/west-bath-lower",
+    "F1/west-bath-upper",
+    "F1/west-bedroom",
+    "F1/south-master",
+    "F1/east-stairs",
+    "F1/east-north-bedroom",
+    "F1/north-nw",
+    "F1/hall-front-west",
+    "F1/hall-front-east",
+    "F1/north-incense",
+    "F1/north-middle-1",
+    "F1/north-middle-2",
+    "F1/east-dining",
+    "F1/east-kitchen",
+    "F1/south-kitchen",
+    "F2/west-master",
+    "F2/west-bath-lower",
+    "F2/west-bath-upper",
+    "F2/west-bedroom",
+    "F2/south-master",
+    "F2/east-stairs",
+    "F2/east-north-bedroom",
+    "F2/north-nw",
+    "F2/hall-front-west",
+    "F2/hall-front-east",
+    "F2/north-living-1",
+    "F2/north-living-2",
+    "F2/east-bedroom",
+    "F2/east-small"
+  ],
+  "dimensions": {
+    "outer_width_mm": 14700,
+    "house_depth_mm": 13000,
+    "courtyard_depth_mm": 7000,
+    "master_clear_mm": [
+      3670,
+      4170
+    ]
+  },
+  "daylight_status": "not_simulated_north_middle_room_unresolved",
+  "note": "验证文件和几何生成一致性；总宽采用用户约数14.7米，墙厚和竖向暂定。未评估承重、日照达标及施工节点。",
+  "glb_bytes": 1491736,
+  "glb_node_count": 584,
+  "glb_mesh_count": 582,
+  "glb_roundtrip_mesh_count": 582,
+  "glb_roundtrip_bounds_error_m": 0.0,
+  "two_dimensional_checks": {
+    "1": {
+      "geometry_errors": [],
+      "unreachable_spaces": [],
+      "projection_f1": 1.0,
+      "interpretation": "仅验证二维数据与生成的三维剖切一致。"
+    },
+    "2": {
+      "geometry_errors": [],
+      "unreachable_spaces": [],
+      "projection_f1": 1.0,
+      "interpretation": "仅验证二维数据与生成的三维剖切一致。"
+    }
+  },
+  "master_ensuite_checks": {
+    "1": {
+      "entry_door_separates_suite": true,
+      "lower_bathroom_access": "suite-passage",
+      "hall_to_public_passage": "fully_open"
+    },
+    "2": {
+      "entry_door_separates_suite": true,
+      "lower_bathroom_access": "suite-passage",
+      "hall_to_public_passage": "fully_open"
+    }
+  }
+}

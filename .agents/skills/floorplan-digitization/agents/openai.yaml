@@ -1,0 +1,4 @@
+interface:
+  display_name: "Floorplan Digitization"
+  short_description: "Calibrate floor plans into validated 2D CAD"
+  default_prompt: "Use $floorplan-digitization to calibrate this floor plan and produce a validated 2D CAD contract."

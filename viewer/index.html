@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>手绘住宅 · 三维查看</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/viewer/styles.css">
+  <script type="importmap">
+    {"imports":{"three":"/node_modules/three/build/three.module.js","three/addons/":"/node_modules/three/examples/jsm/"}}
+  </script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="手绘住宅首页">
+      <svg viewBox="0 0 32 32" width="32" height="32" aria-hidden="true"><path d="M3 29V3h26v26H3Zm0-9h13V3m0 17h13M9 20v9m15-9v9M16 11h13" fill="none" stroke="currentColor" stroke-width="2.2"/></svg>
+      <span>手绘住宅<small>两层空间核对</small></span>
+    </a>
+    <div class="top-actions">
+      <span class="draft">约14.7米 · 墙厚待定</span>
+      <button id="compare" class="quiet-button">图纸对照</button>
+      <a href="/output/house.glb" download="house.glb" class="primary-link">下载模型 <span>GLB</span></a>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <aside class="sidebar" aria-label="模型查看选项">
+      <section class="control-section">
+        <h2>查看楼层</h2>
+        <div class="view-buttons" role="group" aria-label="楼层视图">
+          <button data-view="whole" aria-pressed="false">整栋</button>
+          <button data-view="exploded" aria-pressed="false">分层展开</button>
+          <button data-view="floor1" aria-pressed="true">一层</button>
+          <button data-view="floor2" aria-pressed="false">二层</button>
+        </div>
+        <label class="check-row"><input id="cutaway" type="checkbox" checked>剖切查看室内</label>
+        <p class="control-hint">隐藏 1.2 米以上的墙体，方便看布局。</p>
+        <label class="check-row"><input id="labels" type="checkbox" checked>显示房间名称</label>
+      </section>
+
+      <section class="control-section suite-section">
+        <h2>主卧独立卫浴</h2>
+        <p>两层已同步：入口门以下为主卧套间，上方过道向厅堂敞开。</p>
+        <button id="suite" class="outline-button" aria-pressed="false">查看套间与入口</button>
+        <div class="correction-key" hidden><span><i class="red-mark"></i>套间门</span><span><i class="yellow-mark"></i>敞开通道</span></div>
+      </section>
+
+      <section class="control-section daylight-section">
+        <h2>采光与邻界</h2>
+        <p>图纸北朝上。东侧约3米空地；西侧临街，采用高小窗；南侧邻居一层，前院上方保持挑空。</p>
+        <button id="daylight" class="outline-button" aria-pressed="false">查看建议窗洞</button>
+        <p class="daylight-issue">北侧院墙仅隔约0.2–0.3米，北排中间房采光仍待解决。</p>
+        <p id="screen-note">新增影壁已取消；保留附属间前挡墙并向院子中间移动。</p>
+      </section>
+
+      <section class="control-section room-section">
+        <h2><label for="room-select">查看房间</label></h2>
+        <select id="room-select"><option value="">点击模型中的房间</option></select>
+        <div id="room-detail" aria-live="polite">
+          <strong id="room-name">选择一个房间</strong>
+          <p id="room-size">可以查看暂定尺寸与相邻空间。</p>
+          <p id="room-connections"></p>
+          <p id="room-daylight"></p>
+          <button id="kitchen-window" class="outline-button" hidden>从厨房看窗外遮挡</button>
+        </div>
+      </section>
+
+      <section class="model-note">
+        <p>前院上方挑空，二层不铺楼板。</p>
+        <details>
+          <summary>尺寸与模型说明</summary>
+          <p id="dimensions-note">正在读取参数…</p>
+          <p>窗洞为设计建议，屋顶未建模。展示灯光不代表日照模拟；结构、窗洞和排水节点须由当地设计人员深化。</p>
+        </details>
+        <a href="/output/house.blend" download="house.blend">下载 Blender 源文件</a>
+      </section>
+    </aside>
+
+    <section id="viewport" aria-label="可旋转的住宅三维模型">
+      <div class="viewport-bar">
+        <div><strong id="view-title">一层</strong><span id="view-subtitle">剖切视图</span></div>
+        <div class="camera-buttons"><button id="top-view" aria-pressed="false">俯视</button><button id="reset-view">复位</button></div>
+      </div>
+      <div id="loading" role="status">正在打开住宅模型…</div>
+      <div id="room-labels"></div>
+      <div class="viewport-footer"><span>拖动旋转 · 滚轮缩放 · 右键平移</span><span id="scale-note">单位：米</span></div>
+    </section>
+  </main>
+
+  <dialog id="drawings">
+    <div class="dialog-header"><h2>图纸对照</h2><div><select id="drawing-floor" aria-label="对照楼层"><option value="1">一层</option><option value="2">二层</option></select><button id="close-drawings" aria-label="关闭图纸对照">关闭</button></div></div>
+    <div class="drawing-grid"><figure><figcaption>当前平面图</figcaption><img id="plan-image" alt="当前楼层平面图"></figure><figure><figcaption>手绘参考（已做透视校正）</figcaption><img id="reference-image" alt="当前楼层手绘参考"></figure></div>
+  </dialog>
+  <dialog id="kitchen-detail" class="kitchen-detail">
+    <div class="dialog-header"><h2>厨房南窗 · 室内视角</h2><button id="close-kitchen-detail" aria-label="关闭厨房窗视图">关闭</button></div>
+    <figure>
+      <img src="/output/kitchen-window-inside.png" alt="从厨房室内观察南窗，窗外梯段、平台、栏杆及上层楼板按当前尺寸保留">
+      <figcaption>建议推拉窗 2.4 × 1.4 米，窗台高 1.2 米。室内朝南看，画面左侧为东。<br>窗外梯段、平台和栏杆仍有遮挡，保留东窗。此图只表示几何关系，尚未表现玻璃及窗扇细节，不是日照或照度模拟。</figcaption>
+    </figure>
+  </dialog>
+  <script type="module" src="/viewer/app.js"></script>
+</body>
+</html>

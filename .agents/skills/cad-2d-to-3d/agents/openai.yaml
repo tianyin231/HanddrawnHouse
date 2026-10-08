@@ -1,0 +1,4 @@
+interface:
+  display_name: "2D CAD to 3D"
+  short_description: "Route floor plans and parts into validated 3D"
+  default_prompt: "Use $cad-2d-to-3d to classify this as an architectural floor plan or mechanical part, then build and validate an editable 3D reconstruction candidate."

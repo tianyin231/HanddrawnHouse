@@ -1,0 +1,27 @@
+node_modules/
+__pycache__/
+*.py[cod]
+*.log
+.env
+.env.*
+!.env.example
+.DS_Store
+Thumbs.db
+
+# 临时分析和历史备份留在本机；保留预览所需的校正参考图。
+/work/*
+!/work/reference-floor-1.png
+!/work/reference-floor-2.png
+
+# 保存当前整体模型和核对图，分层中间文件可以重新生成。
+/output/*
+!/output/house.blend
+!/output/house.glb
+!/output/house-stacked.png
+!/output/house-exploded.png
+!/output/floor-1-plan.png
+!/output/floor-2-plan.png
+!/output/floor-1-3d.png
+!/output/floor-2-3d.png
+!/output/kitchen-window-inside.png
+!/output/validation.json

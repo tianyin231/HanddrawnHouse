@@ -2,12 +2,12 @@
   "status": "pass",
   "model_status": "needs_review",
   "blender_version": "5.2.1 LTS",
-  "native_mesh_count": 780,
+  "native_mesh_count": 789,
   "native_bounds_m": [
     [
       -2.8312206268310547e-07,
-      -7.629394360719743e-08,
-      -0.6520000100135803
+      -7.450580707946131e-10,
+      -0.699999988079071
     ],
     [
       14.700000762939453,
@@ -132,7 +132,7 @@
           [
             0.12,
             6.88,
-            -0.425
+            -0.41548
           ]
         ],
         "diameter_mm": 110
@@ -158,15 +158,40 @@
           [
             14.58,
             6.88,
-            -0.425
+            -0.41548
           ]
         ],
         "diameter_mm": 110
+      },
+      {
+        "id": "annex",
+        "centerline_m": [
+          [
+            14.319999999999999,
+            3.84,
+            2.388
+          ],
+          [
+            14.319999999999999,
+            3.84,
+            -0.5700000000000001
+          ]
+        ],
+        "diameter_mm": 110,
+        "outfall": "below_floor_connection_pending"
       }
     ],
     "gutter_outlets_open": true,
     "routes_stay_inside_site": true,
     "capacity_assessed": false
+  },
+  "site_details": {
+    "status": "proposal_not_engineered",
+    "gate_leaves": 2,
+    "porch_columns_clear_of_entrance": true,
+    "annex_outlet_open": true,
+    "yard_grade_ratio": 0.008,
+    "underground_outfall": "not_surveyed"
   },
   "dimensions": {
     "outer_width_mm": 14700,
@@ -205,13 +230,13 @@
     "native_bounds_m": [
       [
         0.24000000953674316,
-        -7.629394360719743e-08,
-        -0.4620000123977661
+        -7.450580707946131e-10,
+        -0.4954400062561035
       ],
       [
         14.699999809265137,
         6.980000019073486,
-        2.5938336849212646
+        2.6649999618530273
       ]
     ],
     "mesh_count": 15,
@@ -221,10 +246,10 @@
     "glb_roundtrip_checked": true
   },
   "note": "验证文件和几何生成一致性；总宽采用用户约数14.7米，墙厚和竖向暂定。未评估承重、日照达标及施工节点。",
-  "glb_bytes": 8249780,
-  "glb_node_count": 789,
-  "glb_mesh_count": 780,
-  "glb_roundtrip_mesh_count": 780,
+  "glb_bytes": 8183420,
+  "glb_node_count": 803,
+  "glb_mesh_count": 789,
+  "glb_roundtrip_mesh_count": 789,
   "glb_roundtrip_bounds_error_m": 0.0,
   "two_dimensional_checks": {
     "1": {

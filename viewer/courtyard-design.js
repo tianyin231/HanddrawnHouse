@@ -1,13 +1,14 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { yardElevationAt, siteLayout, annexRoofHeightAt } from './site-layout.js';
 
 // 庭院概念：几何以米表示，位置采用平面图的东、北、高坐标。
-// 不指定采购树种、基础做法及排水坡度，保留原户型和现场复测状态。
+// 不指定采购树种与基础做法；排水坡度仅为待复核方案。
 export const GARDEN_MATERIALS = {
-  paving: { color: '#c5c6bb', roughness: .92 },
-  pavingLight: { color: '#d7d5c9', roughness: .92 },
+  paving: { color: '#c8c9c5', roughness: .94 },
+  pavingLight: { color: '#dedbd2', roughness: .88 },
   gravel: { color: '#a8ad9a', roughness: 1 },
-  stone: { color: '#737e73', roughness: .9 },
+  stone: { color: '#858d89', roughness: .96 },
   wood: { color: '#a38058', roughness: .76 },
   bark: { color: '#625744', roughness: 1 },
   metal: { color: '#35483e', roughness: .55, metalness: .25 },
@@ -17,7 +18,7 @@ export const GARDEN_MATERIALS = {
   leafDark: { color: '#345d3e', roughness: .95 },
   flowers: { color: '#a3a0b9', roughness: .85 },
   plaster: { color: '#e9e7dc', roughness: .95 },
-  roof: { color: '#535e55', roughness: .88 },
+  roof: { color: '#777e7e', roughness: .94 },
   lamp: { color: '#ffe6b1', roughness: .4, emissive: '#ffd08a', emissiveIntensity: .35 }
 };
 
@@ -39,7 +40,7 @@ export function courtyardLayout(p, plan) {
       { id: 'across-annex', bounds: [7.3, 4.1, width - wall, 5.4], clearWidth: 1.3 }
     ],
     beds: [
-      { id: 'south-border', bounds: [.65, .45, screen - .65, 1.25], height: .28 },
+      { id: 'south-border', bounds: [2.15, .45, screen - .65, 1.25], height: .28 },
       { id: 'tree-garden', bounds: [.6, depth - 2.3, 2.7, north], height: .24 },
       { id: 'east-border', bounds: [width - 1.05, 5.65, width - .35, depth - .35], height: .3 }
     ],
@@ -60,12 +61,19 @@ export function gardenIsVisible(state) {
 
 export function createCourtyardDesign(p, plan) {
   const layout = courtyardLayout(p, plan), buckets = new Map();
+  const site=siteLayout(p,plan);
   let seed = 421;
   const random = () => ((seed = (1664525 * seed + 1013904223) >>> 0) / 4294967296);
-  const point = ([x, y, h]) => new THREE.Vector3(x, h + layout.elevation, -y);
+  const point = ([x, y, h]) => new THREE.Vector3(x, h + yardElevationAt(p,y), -y);
+  let followGrade=true;
   const add = (material, geometry, position, rotation = 0) => {
     geometry.rotateY(rotation);
-    geometry.translate(...point(position).toArray());
+    geometry.translate(position[0],position[2]+(followGrade?yardElevationAt(p,position[1]):layout.elevation),-position[1]);
+    if(followGrade&&['paving','pavingLight','gravel'].includes(material)) {
+      const vertices=geometry.attributes.position;
+      for(let i=0;i<vertices.count;i++)vertices.setY(i,vertices.getY(i)+yardElevationAt(p,-vertices.getZ(i))-yardElevationAt(p,position[1]));
+      geometry.computeVertexNormals();
+    }
     const flat = geometry.index ? geometry.toNonIndexed() : geometry;
     if (flat !== geometry) geometry.dispose();
     // 只保留共享的顶点属性，后续按材质合并，降低树叶和铺装的绘制开销。
@@ -95,7 +103,10 @@ export function createCourtyardDesign(p, plan) {
 
   // 600 mm 方砖，完成面与降低后的院面一致。
   const { width, depth, wall, screen, beds, terrace } = layout;
-  const pavedAreas = [[wall, wall, screen - .1, 4.09], [screen + .1, wall, layout.annex[0], 4.09], [wall, 4.1, width - wall, depth - .02]];
+  const channel=site.drain;
+  const pavedAreas = [[wall, wall, screen - .1, channel.y-channel.width/2], [wall, channel.y+channel.width/2, screen - .1, 4.09],
+    [screen + .1, wall, layout.annex[0], channel.y-channel.width/2], [screen + .1, channel.y+channel.width/2, layout.annex[0],4.09],
+    [wall, 4.1, width - wall, depth - .02]];
   for (const [x0, y0, x1, y1] of pavedAreas) for (let x = x0; x < x1; x += .6) for (let y = y0; y < y1; y += .6) {
     const endX = Math.min(x + .59, x1), endY = Math.min(y + .59, y1);
     if (beds.some(b => inside((x + endX) / 2, (y + endY) / 2, b.bounds))) continue;
@@ -177,16 +188,27 @@ export function createCourtyardDesign(p, plan) {
   box('lamp', [screen - .175, 3.41, screen - .16, 3.59], 1.13, .20);
 
   // 附属间的可撤回封顶概念，只覆盖附属间范围，不跨入通道或主院上空。
+  followGrade=false;
   const [ax0, ay0, ax1, ay1] = layout.annex;
   const annexHeight = p.annex_height / 1000, yardHeight = p.courtyard_wall_height / 1000;
   box('plaster', [ax0, ay0, ax1, wall], yardHeight, annexHeight - yardHeight);
   box('plaster', [width - wall, ay0, width, 4], yardHeight, annexHeight - yardHeight);
-  box('roof', layout.annex, annexHeight, .12);
-  // 薄女儿墙与金属压顶均收在附属间范围内，给平屋面留下真实收边厚度。
+  // 坡面汇向东北角内落水口；分块生成真实孔洞和坡度。
+  const a=site.annex,[dx,dy]=a.outlet,r=a.openingRadius;
+  const xs=[ax0,dx-r,dx+r,ax1],ys=[ay0,dy-r,dy+r,ay1];
+  for(let i=0;i<3;i++)for(let j=0;j<3;j++) {
+    if(i===1&&j===1)continue;
+    const xy=[[xs[i],ys[j]],[xs[i+1],ys[j]],[xs[i+1],ys[j+1]],[xs[i],ys[j+1]]];
+    const vertices=[...xy.map(([x,y])=>[x,annexHeight,-y]),...xy.map(([x,y])=>[x,annexRoofHeightAt(a,x,y),-y])];
+    const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(vertices.flat(),3));
+    g.setIndex([0,2,1,0,3,2,4,5,6,4,6,7,0,1,5,0,5,4,1,2,6,1,6,5,2,3,7,2,7,6,3,0,4,3,4,7]);
+    g.computeVertexNormals();add('roof',g,[0,0,0]);
+  }
+  // 压顶收在附属间范围内，留出找坡层和防水翻边的表达空间。
   for (const bounds of [[ax0, ay0, ax1, ay0 + .10], [ax0, ay0 + .10, ax0 + .10, ay1],
     [ax1 - .10, ay0 + .10, ax1, ay1], [ax0 + .10, ay1 - .10, ax1 - .10, ay1]]) {
-    box('plaster', bounds, annexHeight + .12, .14);
-    box('roof', bounds, annexHeight + .26, .025);
+    box('plaster', bounds, annexHeight + .12, .27);
+    box('roof', bounds, annexHeight + .39, .025);
   }
   box('wood', [ax0, .05, ax0 + .045, ay1 - .05], annexHeight - .14, .14);
 

@@ -33,9 +33,10 @@
           <button data-mood="evening" aria-pressed="false">傍晚亮灯</button>
         </div>
         <button data-view="courtyard" class="outline-button" aria-pressed="false">走进小院</button>
+        <button id="gate-toggle" class="outline-button" aria-pressed="true">关闭院门</button>
         <label class="check-row"><input id="garden-design" type="checkbox" checked>显示庭院布置</label>
-        <p id="garden-note" class="garden-note">三级台阶接门廊，浅墙配深色门窗；院墙压顶、窗台滴水与雨水管已补，附属间保留 2 米通道。</p>
-        <details class="garden-assumptions"><summary>设计依据与暂定尺寸</summary><p>按已选的曲周瓦顶参考，借鉴浅墙与深色窗框。院子进屋暂定高差 45 厘米，三级各 15 厘米、踏面 33 厘米；平台与门廊衔接，现场未实测。西侧院门与街道的高差另待复核。</p><p>主屋檐沟暂按 2‰ 找坡，110 毫米雨水管接院内预留雨水口；暴雨排水量、溢流和地下接管未设计。附属间屋面先补收边，排水口另待深化。门窗框扇、双层玻璃与把手为尺寸化示意，开启方向和型材选型待定。</p><p>外观参考：<a href="https://www.bilibili.com/video/BV1r862YgEBa/" target="_blank" rel="noreferrer">2025 年曲周两层住宅设计图</a>；排水构件关系参考<a href="https://marleypipesystems.co.za/installing-rainwater-systems/" target="_blank" rel="noreferrer">厂家安装示意</a>，不作为本地施工验收依据。晴日与傍晚用于比较氛围，不代表真实日照或照度。</p></details>
+        <p id="garden-note" class="garden-note">对开院门、三级台阶与有柱门廊。院面向排水沟找坡，附属间保留 2 米通道。</p>
+        <details class="garden-assumptions"><summary>设计依据与暂定尺寸</summary><p>按已选的曲周瓦顶参考，借鉴浅墙与深色窗框。院子进屋暂定高差 45 厘米，三级各 15 厘米、踏面 33 厘米；平台与门廊衔接，现场未实测。西侧院门与街道的高差另待复核。</p><p>主屋檐沟暂按 2‰ 找坡，110 毫米雨水管接院内预留雨水口；院面暂按 0.8% 向明沟找坡，附属间屋面按 1.5% 找坡至东北角内落水管。暴雨排水量、溢流和地下接管未设计。门廊梁柱只表达支撑关系，截面与配筋待工程复核。门窗框扇、双层玻璃与把手为尺寸化示意，开启方向和型材选型待定。</p><p>外观参考：<a href="https://www.bilibili.com/video/BV1r862YgEBa/" target="_blank" rel="noreferrer">2025 年曲周两层住宅设计图</a>；排水构件关系参考<a href="https://marleypipesystems.co.za/installing-rainwater-systems/" target="_blank" rel="noreferrer">厂家安装示意</a>，不作为本地施工验收依据。晴日与傍晚用于比较氛围；日照对比另按日期与时间计算太阳方向，均不代表照度验收。</p></details>
       </section>
       <section class="control-section">
         <h2>查看楼层</h2>
@@ -50,6 +51,44 @@
         <label class="check-row"><input id="labels" type="checkbox" checked>显示房间名称</label>
         <button id="roof-concept" class="outline-button" aria-pressed="false" disabled>查看屋顶概念</button>
         <p id="roof-note" class="control-hint">正在核对模型中的概念屋顶…</p>
+      </section>
+
+      <section class="control-section interior-section">
+        <h2>室内风格试配</h2>
+        <div class="interior-styles" role="group" aria-label="室内风格">
+          <button data-interior-style="a" aria-label="A 温润木色" aria-pressed="true"><span class="material-swatches" aria-hidden="true"><i style="background:#c6c4bd"></i><i style="background:#a98a66"></i><i style="background:#d8d1c2"></i></span>A · 温润木色</button>
+          <button data-interior-style="b" aria-label="B 清爽灰白" aria-pressed="false"><span class="material-swatches" aria-hidden="true"><i style="background:#e1d7c7"></i><i style="background:#785c47"></i><i style="background:#a9bbc1"></i></span>B · 清爽灰白</button>
+        </div>
+        <p id="interior-description" class="solar-note"></p>
+        <div class="mood-buttons"><button data-interior-room="hall">看一层厅堂</button><button data-interior-room="bedroom">看二层主卧</button></div>
+        <label class="check-row"><input id="interior-preview" type="checkbox">显示室内试配</label>
+        <p class="solar-note">按现有净尺寸试放厅堂与主卧家具。当前为可切换预览，未写入下载模型；厨卫、灯具与其他房间待风格选定后深化。</p>
+      </section>
+
+      <section class="control-section solar-section">
+        <h2>日照对比</h2>
+        <label class="check-row"><input id="solar-enabled" type="checkbox">按日期与时间看阳光</label>
+        <p class="solar-note">邯郸城市坐标，图纸上方暂按真北。灰色体块是邻房高度假设。</p>
+        <div id="solar-controls" hidden>
+          <label class="field-row">日期<input id="solar-date" type="date" value="2026-12-22" min="2020-01-01" max="2099-12-31" required></label>
+          <div class="mood-buttons"><button data-season="12-22">冬季</button><button data-season="06-21">夏季</button></div>
+          <label class="field-row" for="solar-hour">北京时间 <output id="solar-time">12:00</output></label>
+          <input id="solar-hour" type="range" min="0" max="23.75" step="0.25" value="12" aria-label="北京时间">
+          <p id="solar-position" class="solar-note" aria-live="polite"></p>
+          <label class="check-row"><input id="solar-neighbors" type="checkbox" checked>加入邻房遮挡</label>
+          <details class="solar-assumptions"><summary>调整未实测条件</summary>
+            <label class="field-row">南侧一层邻房（米）<input id="neighbor-south" type="number" min="2" max="12" step="0.1" value="3.6" required></label>
+            <label class="field-row">北侧院墙（米）<input id="neighbor-north" type="number" min="1" max="6" step="0.1" value="2.4" required></label>
+            <label class="field-row">东侧邻房（米）<input id="neighbor-east" type="number" min="2" max="20" step="0.1" value="6.4" required></label>
+            <p>南北间隔暂取 0.25 米，东侧间隔 3 米。邻房南北/东西深度以 6 米体块表示；高度从暂定院坪量起，邻地高差与屋顶形状待实测。</p>
+            <label class="field-row">北纬<input id="solar-latitude" type="number" min="-89" max="89" step="0.001" required></label>
+            <label class="field-row">东经<input id="solar-longitude" type="number" min="-180" max="180" step="0.001" required></label>
+            <label class="field-row">图纸北向偏角（°）<input id="solar-north" type="number" min="-180" max="180" step="1" required></label>
+            <p>偏角顺时针为正。例如图纸上方朝东北，填 45°。</p>
+          </details>
+          <div class="solar-results"><p>窗外样点可见太阳数</p><div id="solar-samples" aria-live="polite"></div></div>
+          <p class="solar-note">每窗 9 个样点，只比较当前时刻的几何遮挡；不代表室内照度、日照时长或验收结果。采用 <a href="https://gml.noaa.gov/grad/solcalc/solareqns.PDF" target="_blank" rel="noreferrer">NOAA 太阳位置近似算法</a>，未计大气折射。<a href="https://ungegn.un.org/dashboard/cities/details?id=2067" target="_blank" rel="noreferrer">坐标来源</a></p>
+        </div>
       </section>
 
       <section class="control-section suite-section">
@@ -84,7 +123,7 @@
         <details>
           <summary>尺寸与模型说明</summary>
           <p id="dimensions-note">正在读取参数…</p>
-          <p>屋顶为可隐藏的概念体量，窗洞为设计建议。整栋视图展示完整墙体及屋顶；楼层和剖切视图打开内部空间。展示灯光不代表日照模拟；结构、窗洞和排水节点仍待深化。</p>
+          <p>屋顶及窗洞仍为待复核方案。整栋视图展示完整墙体及屋顶；楼层和剖切视图打开内部空间。日照对比使用暂定邻房体量，只判断太阳方向与几何遮挡；室内风格仍是浏览器试配。结构、灯具参数与排水能力待深化。</p>
         </details>
         <a href="/viewer/survey.html">尺寸校核与现场复测</a>
         <a href="/output/house.blend" download="house.blend">下载 Blender 源文件</a>
@@ -98,6 +137,7 @@
       </div>
       <div id="loading" role="status">正在打开住宅模型…</div>
       <div id="room-labels"></div>
+      <div id="solar-badge" hidden></div>
       <div class="viewport-footer"><span>拖动旋转 · 滚轮缩放 · 右键平移</span><span id="scale-note">单位：米</span></div>
     </section>
   </main>

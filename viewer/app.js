@@ -3,10 +3,13 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { attachRoofConcept, roofIsVisible } from './roof-concept.js';
 import { createCourtyardDesign, courtyardLayout, gardenIsVisible } from './courtyard-design.js';
+import {yardElevationAt} from './site-layout.js';
+import {setupSolarControls} from './solar-controls.js';
+import {createInteriorPreview, INTERIOR_STYLES} from './interior-preview.js';
 
 const $ = (selector) => document.querySelector(selector);
 const viewport = $('#viewport');
-const state = { view: 'whole', cut: false, labels: true, suite: false, top: false, selected: '', daylight: false, roof: true, garden: true, mood: 'day' };
+const state = { view: 'whole', cut: false, labels: true, suite: false, top: false, selected: '', daylight: false, roof: true, garden: true, mood: 'day', gateOpen:true, interior:false, interiorStyle:'a', roomView:'' };
 const roots = new Map(), roomMeshes = new Map(), labels = [], cutPlanes = new Map();
 const caps = new Map(), corrections = new Map();
 const windowFrames = [];
@@ -15,7 +18,12 @@ const quietLabels = new Set(['west-passage', 'suite-passage', 'east-vestibule'])
 let parameters, plans, renderer, scene, camera, controls;
 let roofConcept = null, rainwaterSystem = null;
 let gardenDesign, orbitCamera, courtyardCamera, skyLight, sunLight, ground;
+let solarControls;
+let interiorCamera;
+const interiors=new Map();
+const interiorLights=[];
 const gardenLights = [], gardenEmitters = [], glazingGroups = [];
+const gateLeaves=[];
 let needsRender = true;
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
@@ -140,6 +148,7 @@ function populateRooms() {
 }
 
 function updateView() {
+  if(state.solar)state.roomView='';
   for (const [level, root] of roots) {
     root.visible = visibleLevels().includes(level);
     root.position.y = (level - 1) * parameters.floor_to_floor / 1000 + (level === 2 && state.view === 'exploded' ? 5.4 : 0);
@@ -167,13 +176,29 @@ function updateView() {
   if (gardenDesign) gardenDesign.visible = gardenIsVisible(state);
   for (const group of glazingGroups) group.visible = !state.cut && !state.daylight;
   if (rainwaterSystem) rainwaterSystem.visible = roofIsVisible(state);
+  for(const gate of gateLeaves){gate.rotation.y=state.gateOpen?gate.userData.open_angle:0;gate.visible=!state.cut;}
+  $('#gate-toggle').textContent=state.gateOpen?'关闭院门':'打开院门';
+  $('#gate-toggle').setAttribute('aria-pressed',String(state.gateOpen));
   if (state.view === 'courtyard') $('#view-subtitle').textContent = '起始眼高 1.65 米 · 拖动环看';
+  for(const group of interiors.values()) {
+    group.visible=state.interior && !state.solar;
+    group.traverse(obj=>{if(obj.userData.preview_ceiling)obj.visible=Boolean(state.roomView);});
+  }
+  for(const light of interiorLights)light.visible=Boolean(state.roomView);
+  $('#interior-preview').checked=state.interior;
+  document.querySelectorAll('[data-interior-style]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.interiorStyle===state.interiorStyle)));
+  $('#interior-description').textContent=INTERIOR_STYLES[state.interiorStyle].description;
+  if(state.roomView) {
+    $('#view-title').textContent=state.roomView==='hall'?'一层厅堂 · 室内试配':'二层主卧 · 室内试配';
+    $('#view-subtitle').textContent=`${INTERIOR_STYLES[state.interiorStyle].label} · 仅预览，尚未定稿`;
+  }
   updateGardenLighting();
   scene.updateMatrixWorld(true);
   updateSelection();
 }
 
 function updateGardenLighting() {
+  if (solarControls?.applyLighting()) return;
   const evening = state.mood === 'evening' && gardenIsVisible(state);
   viewport.classList.toggle('evening', evening);
   scene.background.set(evening ? '#526275' : '#e6ebe4');
@@ -182,6 +207,8 @@ function updateGardenLighting() {
   skyLight.color.set(evening ? '#b2c5df' : '#fffdf2');
   sunLight.intensity = evening ? .48 : 2.5;
   sunLight.color.set(evening ? '#ffbf81' : '#fff4df');
+  sunLight.position.set(-8,25,9);
+  sunLight.target.position.set(parameters.site_width/2000,0,-10);
   renderer.toneMappingExposure = evening ? 1.05 : .98;
   for (const light of gardenLights) light.visible = evening;
   for (const material of gardenEmitters) material.emissiveIntensity = evening ? 4 : .35;
@@ -191,10 +218,22 @@ function updateGardenLighting() {
 }
 
 function fitCamera() {
-  camera = state.view === 'courtyard' ? courtyardCamera : orbitCamera;
+  camera = state.roomView ? interiorCamera : state.view === 'courtyard' ? courtyardCamera : orbitCamera;
   controls.object = camera;
+  if(state.roomView) {
+    if(state.roomView==='hall') {
+      camera.position.set(5.1,1.58,-10.96);controls.target.set(8.0,1.05,-13.3);
+    } else {
+      const h=parameters.floor_to_floor/1000;
+      camera.position.set(.64,h+1.55,-7.85);controls.target.set(2.1,h+1.0,-10.2);
+    }
+    camera.aspect=viewport.clientWidth/viewport.clientHeight;
+    camera.fov=Math.min(88,THREE.MathUtils.radToDeg(2*Math.atan(Math.tan(THREE.MathUtils.degToRad(31))/Math.min(camera.aspect,1))));
+    camera.updateProjectionMatrix();controls.update();
+    $('#top-view').setAttribute('aria-pressed','false');needsRender=true;return;
+  }
   if (state.view === 'courtyard') {
-    const yardHeight = -parameters.entrance_proposal.yard_drop_mm / 1000;
+    const yardHeight = yardElevationAt(parameters,.85);
     camera.position.set(6.7, yardHeight + 1.65, -.85);
     controls.target.set(5.1, yardHeight + 2.15, -7);
     camera.aspect = viewport.clientWidth / viewport.clientHeight;
@@ -210,6 +249,8 @@ function fitCamera() {
   for (const root of roots.values()) root.traverseVisible(obj => {
     if (obj.isMesh) bounds.union(new THREE.Box3().setFromObject(obj));
   });
+  const neighborBounds=solarControls?.bounds();
+  if(neighborBounds) bounds.union(neighborBounds);
   const center = bounds.getCenter(new THREE.Vector3());
   const direction = state.top ? new THREE.Vector3(0, 1, .0001) : new THREE.Vector3(.65, 1.1, 1.35).normalize();
   camera.zoom = 1;
@@ -243,7 +284,7 @@ function positionLabels() {
   const ordered = [...labels].sort((a, b) => Number(b.correction) - Number(a.correction));
   for (const label of ordered) {
     const root = roots.get(label.level);
-    const allowed = !roofConcept?.visible && root.visible && (label.correction ? state.suite : state.labels) && !(state.view === 'whole' && label.level === 1);
+    const allowed = !state.roomView && !roofConcept?.visible && root.visible && (label.correction ? state.suite : state.labels) && !(state.view === 'whole' && label.level === 1);
     label.element.hidden = !allowed;
     if (!allowed) continue;
     const point = root.localToWorld(label.point.clone()).project(camera);
@@ -302,6 +343,7 @@ async function init() {
   camera = new THREE.OrthographicCamera(-15, 15, 15, -15, .1, 200);
   orbitCamera = camera;
   courtyardCamera = new THREE.PerspectiveCamera(62, 1, .08, 200);
+  interiorCamera = new THREE.PerspectiveCamera(62, 1, .05, 200);
   controls = new OrbitControls(camera, renderer.domElement);
   controls.maxPolarAngle = Math.PI * .49;
   controls.minZoom = .35; controls.maxZoom = 6;
@@ -321,6 +363,7 @@ async function init() {
   ground.rotation.x = -Math.PI / 2; ground.position.set(parameters.site_width / 2000, -parameters.entrance_proposal.yard_drop_mm / 1000 - .22, -10); ground.receiveShadow = true; scene.add(ground);
   const gltf = await new GLTFLoader().loadAsync('/output/house.glb');
   scene.add(gltf.scene);
+  gltf.scene.traverse(object=>{if(object.userData.gate_leaf)gateLeaves.push(object);});
   for (const plan of plans) {
     const root = gltf.scene.getObjectByName(`Floor_${plan.level}`);
     if (!root) throw new Error(`模型缺少第 ${plan.level} 层`);
@@ -395,21 +438,58 @@ async function init() {
   }
   for (const [x, y, h] of courtyardLayout(parameters, plans[0]).lights) {
     const lamp = new THREE.PointLight('#ffd59b', 10, 4.5, 2);
-    lamp.position.set(x, h + .05 - parameters.entrance_proposal.yard_drop_mm / 1000, -y);
+    lamp.position.set(x, h + .05 + yardElevationAt(parameters,y), -y);
     roots.get(1).add(lamp); gardenLights.push(lamp);
   }
+  solarControls=setupSolarControls({parameters,plans,state,scene,roots,skyLight,sunLight,renderer,ground,gardenLights,gardenEmitters,
+    refresh:fit=>{updateView();if(fit){populateRooms();fitCamera();}},render:()=>{needsRender=true;}});
+  function refreshInteriors() {
+    for(const plan of plans) {
+      const old=interiors.get(plan.level);
+      if(old){old.removeFromParent();old.traverse(obj=>{obj.geometry?.dispose();obj.material?.dispose();});}
+      const group=createInteriorPreview(parameters,plan,state.interiorStyle);
+      group.traverse(obj=>{if(obj.isMesh){obj.material.clippingPlanes=[cutPlanes.get(plan.level)];obj.material.clipShadows=true;}});
+      roots.get(plan.level).add(group);interiors.set(plan.level,group);
+    }
+  }
+  const showInterior = room => {
+    state.interior=true;state.roomView=room;state.solar=false;state.view=room==='hall'?'floor1':'floor2';
+    state.cut=false;state.roof=false;state.daylight=false;state.suite=false;state.top=false;
+    updateView();populateRooms();fitCamera();
+  };
+  refreshInteriors();
+  for(const plan of plans) {
+    for(const [x,y,power] of [[6.8,12.7,25],[8.5,14,16],[1.8,9.1,18]]) {
+      const light=new THREE.PointLight('#fff1d9',power,7,2);
+      light.position.set(x,2.72,-y);roots.get(plan.level).add(light);interiorLights.push(light);
+    }
+  }
+  $('#interior-preview').addEventListener('change',event=>{
+    state.interior=event.target.checked;state.roomView='';state.solar=false;
+    if(state.interior){state.view='floor1';state.cut=true;state.roof=false;}
+    updateView();populateRooms();fitCamera();
+  });
+  document.querySelectorAll('[data-interior-style]').forEach(button=>button.addEventListener('click',()=>{
+    state.interiorStyle=button.dataset.interiorStyle;refreshInteriors();showInterior(state.roomView||'hall');
+  }));
+  document.querySelectorAll('[data-interior-room]').forEach(button=>button.addEventListener('click',()=>showInterior(button.dataset.interiorRoom)));
   $('#garden-design').addEventListener('change', event => {
     state.garden = event.target.checked;
+    state.roomView='';
     if (state.garden && !['whole', 'courtyard'].includes(state.view)) state.view = 'whole';
     if (state.garden) { state.cut = false; state.roof = true; }
     updateView(); populateRooms(); fitCamera();
   });
+  $('#gate-toggle').addEventListener('click',()=>{state.gateOpen=!state.gateOpen;updateView();});
   document.querySelectorAll('[data-mood]').forEach(button => button.addEventListener('click', () => {
+    state.solar=false;
+    state.roomView='';
     state.mood = button.dataset.mood; state.garden = true; state.cut = false; state.roof = true;
     if (!['whole', 'courtyard'].includes(state.view)) state.view = 'whole';
     updateView(); populateRooms(); fitCamera();
   }));
   $('#roof-concept').addEventListener('click', () => {
+    state.roomView='';
     state.roof = !roofIsVisible(state);
     if (state.roof) {
       state.view = 'whole'; state.cut = false; state.top = false;
@@ -418,6 +498,7 @@ async function init() {
     updateView(); populateRooms(); fitCamera();
   });
   document.querySelectorAll('[data-view]').forEach(button => button.addEventListener('click', () => {
+    state.roomView='';
     state.view = button.dataset.view;
     state.cut = !['whole', 'courtyard'].includes(state.view);
     state.roof = !state.cut;
@@ -425,8 +506,9 @@ async function init() {
     state.top = false; state.suite = false; state.daylight = false;
     updateView(); populateRooms(); fitCamera();
   }));
-  $('#cutaway').addEventListener('change', event => { state.cut = event.target.checked; if (state.cut) state.daylight = false; updateView(); fitCamera(); });
+  $('#cutaway').addEventListener('change', event => { state.roomView='';state.cut = event.target.checked; if (state.cut) state.daylight = false; updateView(); fitCamera(); });
   $('#daylight').addEventListener('click', () => {
+    state.roomView='';
     state.daylight = !state.daylight;
     if (state.daylight) { state.cut = false; state.top = false; state.suite = false; state.roof = false; }
     else state.cut = true;
@@ -434,6 +516,7 @@ async function init() {
   });
   $('#labels').addEventListener('change', event => { state.labels = event.target.checked; needsRender = true; });
   $('#suite').addEventListener('click', () => {
+    state.roomView='';
     state.suite = !state.suite;
     if (state.suite) {
       state.cut = true;
@@ -445,6 +528,7 @@ async function init() {
   });
   $('#room-select').addEventListener('change', event => selectRoom(event.target.value));
   $('#top-view').addEventListener('click', () => {
+    state.roomView='';
     if (state.view === 'courtyard') { state.view = 'whole'; updateView(); populateRooms(); }
     state.top = !state.top; fitCamera();
   });

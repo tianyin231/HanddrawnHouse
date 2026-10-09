@@ -39,6 +39,24 @@
     "panel_count": 2,
     "status": "proposal"
   },
+  "site_detail_proposal": {
+    "yard_slope_ratio": 0.008,
+    "drain_y_mm": 1450,
+    "drain_width_mm": 120,
+    "column_width_mm": 300,
+    "porch_beam_depth_mm": 320,
+    "gate_leaf_height_mm": 1950,
+    "annex_roof_slope_ratio": 0.015,
+    "status": "proposal_not_engineered"
+  },
+  "solar_location": {
+    "latitude": 36.62,
+    "longitude": 114.48,
+    "utc_offset_hours": 8,
+    "north_rotation_deg": 0,
+    "status": "handan_city_reference_not_site_survey",
+    "source": "https://ungegn.un.org/dashboard/cities/details?id=2067"
+  },
   "passage_clear_width": 1000,
   "stair_risers": 20,
   "stair_tread": 280,

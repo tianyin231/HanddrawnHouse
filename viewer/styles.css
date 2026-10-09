@@ -39,6 +39,21 @@ button[aria-pressed="true"] { background: var(--accent); border-color: var(--acc
 .garden-note { color: var(--muted); font-size: 11px; margin-top: 11px; }
 .garden-assumptions { margin-top: 10px; font-size: 11px; color: var(--muted); }
 .garden-assumptions p { margin-top: 7px; }
+#gate-toggle { margin-top: 7px; }
+.interior-styles { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+.interior-styles button { text-align: left; padding: 9px 7px; font-size: 11px; }
+.material-swatches { display: flex; gap: 3px; margin-bottom: 9px; }
+.material-swatches i { height: 23px; flex: 1; border: 1px solid #ffffff35; }
+.solar-note, .solar-assumptions { font-size: 11px; color: var(--muted); margin: 10px 0; line-height: 1.7; }
+.field-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 11px; margin: 12px 0 8px; }
+.field-row input { min-width: 0; width: 80px; border: 1px solid var(--line); border-radius: 4px; padding: 5px; color: var(--ink); background: white; }
+.field-row input[type="date"] { width: 149px; }
+#solar-hour { width: 100%; accent-color: var(--accent); margin: 0; }
+.solar-results { margin-top: 15px; font-size: 11px; border-top: 1px solid var(--line); padding-top: 10px; }
+.solar-results > p { color: var(--muted); margin-bottom: 5px; }
+#solar-samples > div { display: flex; justify-content: space-between; padding: 4px 0; }
+#solar-samples[data-status="pending"] { opacity: .5; }
+#solar-badge { position: absolute; z-index: 3; left: 26px; top: 89px; font-size: 11px; background: #fffffff0; border-left: 3px solid #a48a40; padding: 8px 10px; max-width: calc(100% - 52px); }
 h2 { font-size: 14px; font-weight: 600; margin: 0 0 14px; }
 p { line-height: 1.75; margin: 0; }
 .view-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-bottom: 21px; }

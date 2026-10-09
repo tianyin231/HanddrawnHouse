@@ -12,6 +12,8 @@ from mathutils import Vector, Quaternion
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 from exterior_details import create_facade_details, create_rainwater_details
+from exterior_details import merge_material_parts
+from site_details import load_site, create_site_details
 OUT = ROOT / "output"
 P = json.loads((ROOT / "house_parameters.json").read_text(encoding="utf-8"))
 spec = importlib.util.spec_from_file_location("architecture_skill", ROOT / ".agents/skills/cad-2d-to-3d/scripts/build_architecture_blender.py")
@@ -323,7 +325,7 @@ def build_floor(level):
     bpy.ops.render.render(write_still=True)
     for obj in cuts.objects: obj.hide_render=True
     white=pbr("display/wall-ivory","#eeece4")
-    plinth=pbr("display/slab","#929d95")
+    plinth=pbr("display/slab","#e0dfd7",.92)
     frame=pbr("display/opening-proxy","#655b4d")
     window_frame=pbr("display/window-frame","#414b50",.45,.15)
     metal=pbr("display/rail","#4a5356",.40,.40)
@@ -383,6 +385,7 @@ def build_floor(level):
             obj["model_part"]=True
             obj["is_proxy"]=True
     if level==1: create_entrance_proposal(plan,detail,stair_mat,metal)
+    create_site_details(plan,P,load_site(ROOT),box,mesh_object,collection,pbr,merge_material_parts)
     create_facade_details(plan,P,box,mesh_object,collection,pbr)
     font=bpy.data.fonts.load(FONT_PATH,check_existing=True)
     for obj in bpy.data.collections[SKILL.SPACE_COLLECTION_NAME].objects:
@@ -401,7 +404,7 @@ def build_floor(level):
     for obj in list(scene.objects):
         if obj!=root:
             if obj.parent is None: obj.parent=root
-            if not obj.get("facade_root"): obj.name=f"F{level}/"+obj.name
+            if not obj.get("facade_root") and not obj.get("site_root"): obj.name=f"F{level}/"+obj.name
     root.location.z=plan["elevation"]/1000
     for col in list(scene.collection.children):
         if col==parent: continue
@@ -440,7 +443,7 @@ def assemble():
             scene.collection.children.link(col)
     roof_root,roof_mesh,envelope=create_roof_concept()
     garden=create_courtyard_design()
-    rainwater=create_rainwater_details(P,envelope,box,mesh_object,collection,pbr)
+    rainwater=create_rainwater_details(P,envelope,box,mesh_object,collection,pbr,load_site(ROOT))
     bpy.ops.object.camera_add()
     camera=bpy.context.object
     camera.name="总览相机"

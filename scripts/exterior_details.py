@@ -2,6 +2,7 @@
 import math
 import bpy
 from mathutils import Vector
+from site_details import yard_height
 
 
 def merge_material_parts(parts, prefix, root, metadata):
@@ -44,11 +45,10 @@ def create_facade_details(plan, p, box, mesh, collection, material):
     stone = material("exterior/sill-stone", "#b3b6b1", .9)
     wood = material("exterior/door-panel", "#807565", .7)
     metal = material("exterior/hardware", "#5e6261", .3, .65)
-    glass = material("exterior/glass", "#b2c5c8", .14, .06)
+    glass = material("exterior/glass", "#d8e4e5", .12)
     bsdf = next(node for node in glass.node_tree.nodes if node.type == "BSDF_PRINCIPLED")
-    bsdf.inputs["Alpha"].default_value = .16
-    glass.diffuse_color = (*glass.diffuse_color[:3], .16)
-    glass.surface_render_method = "DITHERED"
+    bsdf.inputs["Transmission Weight"].default_value = .82
+    bsdf.inputs["IOR"].default_value = 1.5
     lamp = material("exterior/porch-light", "#f4d7a0", .4)
     lamp_bsdf = next(node for node in lamp.node_tree.nodes if node.type == "BSDF_PRINCIPLED")
     lamp_bsdf.inputs["Emission Color"].default_value = lamp.diffuse_color
@@ -168,7 +168,7 @@ def create_facade_details(plan, p, box, mesh, collection, material):
     return root
 
 
-def create_rainwater_details(p, envelope, box, mesh, collection, material):
+def create_rainwater_details(p, envelope, box, mesh, collection, material, site):
     col = collection("architecture/rainwater-proposal")
     root = bpy.data.objects.new("RainwaterSystem", None)
     col.objects.link(root)
@@ -180,9 +180,9 @@ def create_rainwater_details(p, envelope, box, mesh, collection, material):
     mat = material("exterior/rainwater", "#606968", .58, .18)
     dark = material("exterior/drain-inlet", "#333c3c", .88)
     height = p["floor_to_floor"] / 1000
-    yard = -p["entrance_proposal"]["yard_drop_mm"] / 1000
     facade_y = p["courtyard_depth"] / 1000
     pipe_y = facade_y - .12
+    yard = yard_height(site,pipe_y)
     parts = []
 
     def tube(name, path, outer=.055, inner=.051):
@@ -234,6 +234,15 @@ def create_rainwater_details(p, envelope, box, mesh, collection, material):
             xx = gx-.17+i*.034
             parts.append(box("rainwater/grate", (xx,gy,yard+.012), (.012,.26,.015), col, mat))
         routes.append({"id":outlet["id"],"centerline_m":path,"diameter_mm":outlet["diameterMm"]})
+    # 附属间采用东北角内落水，立管贴内墙，不占用西侧 2 米净通道。
+    annex=site["annex"]
+    x,y=annex["outlet"]
+    z=annex["elevation"]+annex["roofLow"]
+    path=[(x,y,z+.018),(x,y,annex["elevation"]-.12)]
+    tube("rainwater/annex",path)
+    tube("rainwater/annex-roof-collar",[(x,y,z-.012),(x,y,z+.025)],.12,.051)
+    for h in (.35,1.45):tube("rainwater/annex-clip",[(x,y,h-.02),(x,y,h+.02)],.065,.055)
+    routes.append({"id":"annex","centerline_m":path,"diameter_mm":110,"outfall":"below_floor_connection_pending"})
     import json
     root["routes"] = json.dumps(routes)
     merge_material_parts(parts, "rainwater/assembly", root, {"detail_kind":"rainwater", "model_status":"needs_review"})

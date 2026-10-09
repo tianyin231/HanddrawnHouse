@@ -7,8 +7,12 @@ import subprocess
 import bpy
 import bmesh
 from mathutils import Vector
+import sys
 
 ROOT=Path(__file__).resolve().parents[1]
+sys.path.insert(0,str(ROOT/"scripts"))
+from site_details import load_site,yard_height
+site=load_site(ROOT)
 OUT=ROOT/"output"
 P=json.loads((ROOT/"house_parameters.json").read_text(encoding="utf-8"))
 bpy.ops.wm.open_mainfile(filepath=str(OUT/"house.blend"))
@@ -48,7 +52,7 @@ drop=entrance["yard_drop_mm"]/1000
 lower=bpy.data.objects["F1/floor/property-boundary"]
 assert not floor_hit(lower,6.4,3.5)[0],"室内楼板仍盖在院面上"
 yard=bpy.data.objects["F1/room-floor/courtyard"]
-assert abs(floor_hit(yard,6.4,3.5)[1][2]+drop)<1e-5
+assert abs(floor_hit(yard,6.4,3.5)[1][2]-yard_height(site,3.5))<1e-5
 entry_tops=[]
 for i in range(1,entrance["riser_count"]+1):
     obj=bpy.data.objects[f"F1/entrance/step-{i}"]
@@ -89,7 +93,7 @@ assert not floor_hit(roof,P["site_width"]/2000,P["courtyard_depth"]/2000)[0]
 rainwater=bpy.data.objects["RainwaterSystem"]
 assert rainwater.parent==bpy.data.objects["Floor_1"]
 routes=json.loads(rainwater["routes"])
-assert len(routes)==2
+assert len(routes)==3
 for route,outlet in zip(routes,envelope["drainageOutlets"]):
     path=route["centerline_m"]
     x,y,z=outlet["position"]
@@ -97,7 +101,20 @@ for route,outlet in zip(routes,envelope["drainageOutlets"]):
     assert (Vector(path[0])-Vector((x,y,z+P["floor_to_floor"]/1000-.008))).length<1e-6
     assert all(b[2]<a[2] for a,b in zip(path,path[1:])),"雨水管反坡"
     assert all(.05<point[0]<P["site_width"]/1000-.05 and point[1]<P["courtyard_depth"]/1000 for point in path)
-    assert abs(path[-1][2]-(-drop+.025))<1e-6
+    assert abs(path[-1][2]-(yard_height(site,path[-1][1])+.025))<1e-6
+gate_roots=[o for o in bpy.context.scene.objects if o.get("gate_leaf")]
+assert len(gate_roots)==2
+for gate in gate_roots:
+    assert abs(gate.rotation_euler.z-gate["open_angle"])<1e-6
+    lo,hi=bounds(list(gate.children))
+    assert lo[0]>=0 and hi[0]<2.05,"院门侵入花带"
+for level in (1,2):
+    structure=bpy.data.objects[f"F{level}/StructureProposal_{level}"]
+    columns=list(structure["columns_x_m"])
+    radius=structure["column_width_m"]/2
+    assert columns[0]+radius<entrance["center_x_mm"]/1000-entrance["width_mm"]/2000
+    assert columns[1]-radius>entrance["center_x_mm"]/1000+entrance["width_mm"]/2000
+    assert columns[1]+radius<stair["entry_x"]/1000,"柱子堵住楼梯入口"
 for level in (1,2):
     facade=bpy.data.objects[f"FacadeDetails_{level}"]
     assert facade.parent==bpy.data.objects[f"Floor_{level}"]
@@ -129,6 +146,10 @@ assert garden_bounds[0][0]>=-1e-5 and garden_bounds[1][0]<=P["site_width"]/1000+
 assert garden_bounds[0][1]>=-1e-5 and garden_bounds[1][1]<=P["courtyard_depth"]/1000+1e-5
 garden_layout=json.loads(garden_root["layout"])
 assert abs(garden_layout["passage"][2]-garden_layout["passage"][0]-P["annex_passage_clear_width"]/1000)<1e-5
+annex_roof=bpy.data.objects["CourtyardDesign/roof"]
+dx,dy=site["annex"]["outlet"]
+assert not floor_hit(annex_roof,dx,dy)[0],"附属间落水口被封死"
+assert floor_hit(annex_roof,dx-.4,dy-.4)[0]
 original_bounds=bounds(objects)
 original_count=len(objects)
 # 真实实体边界、楼梯踏面与两层出口，不能只验证图片相似。
@@ -210,6 +231,9 @@ report={
         "door_leaves":"main_hall_both_floors_and_annex","glazing_and_sill_bounds_checked":True},
     "rainwater":{"status":rainwater["drainage_status"],"routes":routes,
         "gutter_outlets_open":True,"routes_stay_inside_site":True,"capacity_assessed":False},
+    "site_details":{"status":"proposal_not_engineered","gate_leaves":2,
+        "porch_columns_clear_of_entrance":True,"annex_outlet_open":True,
+        "yard_grade_ratio":P["site_detail_proposal"]["yard_slope_ratio"],"underground_outfall":"not_surveyed"},
     "dimensions":{"outer_width_mm":P["site_width"],"house_depth_mm":P["house_depth"],
                   "courtyard_depth_mm":P["courtyard_depth"],"master_clear_mm":[3670,4170]},
     "daylight_status":"not_simulated_north_middle_room_unresolved",

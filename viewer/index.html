@@ -36,6 +36,8 @@
         <label class="check-row"><input id="cutaway" type="checkbox" checked>剖切查看室内</label>
         <p class="control-hint">隐藏 1.2 米以上的墙体，方便看布局。</p>
         <label class="check-row"><input id="labels" type="checkbox" checked>显示房间名称</label>
+        <button id="roof-concept" class="outline-button" aria-pressed="false" disabled>查看屋顶概念</button>
+        <p id="roof-note" class="control-hint">主体双坡体量，前院保持挑空。尺寸、承重和排水待复核；原 GLB / Blender 文件不含此预览。</p>
       </section>
 
       <section class="control-section suite-section">
@@ -70,7 +72,7 @@
         <details>
           <summary>尺寸与模型说明</summary>
           <p id="dimensions-note">正在读取参数…</p>
-          <p>窗洞为设计建议，屋顶未建模。展示灯光不代表日照模拟；结构、窗洞和排水节点须由当地设计人员深化。</p>
+          <p>窗洞为设计建议；屋顶仅有可开关的浏览器概念体量，原始模型文件未改变。展示灯光不代表日照模拟；结构、窗洞和排水节点须由当地设计人员深化。</p>
         </details>
         <a href="/viewer/survey.html">尺寸校核与现场复测</a>
         <a href="/output/house.blend" download="house.blend">下载 Blender 源文件</a>

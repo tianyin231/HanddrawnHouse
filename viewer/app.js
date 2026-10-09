@@ -1,16 +1,18 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { createRoofConcept, roofIsVisible } from './roof-concept.js';
 
 const $ = (selector) => document.querySelector(selector);
 const viewport = $('#viewport');
-const state = { view: 'floor1', cut: true, labels: true, suite: false, top: false, selected: '', daylight: false };
+const state = { view: 'floor1', cut: true, labels: true, suite: false, top: false, selected: '', daylight: false, roof: false };
 const roots = new Map(), roomMeshes = new Map(), labels = [], cutPlanes = new Map();
 const caps = new Map(), corrections = new Map();
 const windowFrames = [];
 const suiteIds = new Set(['master-bedroom', 'bathroom-lower', 'suite-passage']);
 const quietLabels = new Set(['west-passage', 'suite-passage', 'east-vestibule']);
 let parameters, plans, renderer, scene, camera, controls;
+let roofConcept = null;
 let needsRender = true;
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
@@ -153,13 +155,21 @@ function updateView() {
     obj.material.emissiveIntensity = state.daylight ? .55 : 0;
   }
   $('#view-subtitle').textContent += state.daylight ? ' · 蓝色窗洞为采光建议' : '';
+  if (roofConcept) roofConcept.visible = roofIsVisible(state);
+  const roofVisible = Boolean(roofConcept?.visible);
+  $('#roof-concept').setAttribute('aria-pressed', String(roofVisible));
+  $('#roof-concept').textContent = roofVisible ? '隐藏屋顶概念' : '查看屋顶概念';
+  if (roofVisible) $('#view-subtitle').textContent += ' · 概念屋顶，待复核';
   scene.updateMatrixWorld(true);
   updateSelection();
 }
 
 function fitCamera() {
   const bounds = new THREE.Box3();
-  for (const root of roots.values()) if (root.visible) bounds.union(new THREE.Box3().setFromObject(root));
+  // Hidden roof/caps must not enlarge the camera bounds of interior views.
+  for (const root of roots.values()) root.traverseVisible(obj => {
+    if (obj.isMesh) bounds.union(new THREE.Box3().setFromObject(obj));
+  });
   const center = bounds.getCenter(new THREE.Vector3());
   const direction = state.top ? new THREE.Vector3(0, 1, .0001) : new THREE.Vector3(.65, 1.1, 1.35).normalize();
   camera.zoom = 1;
@@ -193,7 +203,7 @@ function positionLabels() {
   const ordered = [...labels].sort((a, b) => Number(b.correction) - Number(a.correction));
   for (const label of ordered) {
     const root = roots.get(label.level);
-    const allowed = root.visible && (label.correction ? state.suite : state.labels) && !(state.view === 'whole' && label.level === 1);
+    const allowed = !roofConcept?.visible && root.visible && (label.correction ? state.suite : state.labels) && !(state.view === 'whole' && label.level === 1);
     label.element.hidden = !allowed;
     if (!allowed) continue;
     const point = root.localToWorld(label.point.clone()).project(camera);
@@ -292,14 +302,30 @@ async function init() {
     }
     makeCutCaps(plan, root); makeCorrections(plan, root);
   }
+  // Keep the source GLB intact. The concept inherits the original upper-floor transform.
+  try {
+    roofConcept = createRoofConcept(THREE, parameters);
+    roots.get(2).add(roofConcept);
+    $('#roof-concept').disabled = false;
+  } catch (error) {
+    $('#roof-note').textContent = `屋顶概念未加载：${error.message} 原模型保持不变。`;
+  }
+  $('#roof-concept').addEventListener('click', () => {
+    state.roof = !roofIsVisible(state);
+    if (state.roof) {
+      state.view = 'whole'; state.cut = false; state.top = false;
+      state.suite = false; state.daylight = false;
+    }
+    updateView(); populateRooms(); fitCamera();
+  });
   document.querySelectorAll('[data-view]').forEach(button => button.addEventListener('click', () => {
     state.view = button.dataset.view;
     updateView(); populateRooms(); fitCamera();
   }));
-  $('#cutaway').addEventListener('change', event => { state.cut = event.target.checked; if (state.cut) state.daylight = false; updateView(); });
+  $('#cutaway').addEventListener('change', event => { state.cut = event.target.checked; if (state.cut) state.daylight = false; updateView(); fitCamera(); });
   $('#daylight').addEventListener('click', () => {
     state.daylight = !state.daylight;
-    if (state.daylight) { state.cut = false; state.top = false; state.suite = false; }
+    if (state.daylight) { state.cut = false; state.top = false; state.suite = false; state.roof = false; }
     else state.cut = true;
     updateView(); fitCamera();
   });
@@ -328,7 +354,7 @@ async function init() {
   let down;
   renderer.domElement.addEventListener('pointerdown', e => { down = [e.clientX, e.clientY]; });
   renderer.domElement.addEventListener('pointerup', e => {
-    if (e.button !== 0 || !down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 5) return;
+    if (roofConcept?.visible || e.button !== 0 || !down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 5) return;
     const rect = renderer.domElement.getBoundingClientRect();
     pointer.set((e.clientX - rect.left) / rect.width * 2 - 1, 1 - (e.clientY - rect.top) / rect.height * 2);
     raycaster.setFromCamera(pointer, camera);

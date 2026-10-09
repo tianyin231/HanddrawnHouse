@@ -20,6 +20,16 @@
   "annex_height": 2700,
   "annex_passage_clear_width": 2000,
   "door_height": 2200,
+  "entrance_proposal": {
+    "center_x_mm": 6400,
+    "yard_drop_mm": 450,
+    "riser_count": 3,
+    "tread_mm": 330,
+    "width_mm": 2400,
+    "landing_outside_mm": 650,
+    "landing_inside_mm": 550,
+    "status": "proposal_not_measured"
+  },
   "kitchen_south_window": {
     "west_offset": 900,
     "width": 2400,
@@ -40,7 +50,7 @@
   "dimension_basis": "外墙按外缘控制，分间含墙尺寸按共享墙中心分摊；不把含墙尺寸当成净空",
   "site_width_status": "user_approximate",
   "site_context": {
-    "province": "河北", "drawing_up": "north",
+    "province": "河北", "city": "邯郸", "drawing_up": "north",
     "north": "邻居院墙，间隔约200至300毫米，不开大窗；院墙高度待核",
     "north_gap_mm": [200, 300],
     "west": "临街，仅设计高小窗",

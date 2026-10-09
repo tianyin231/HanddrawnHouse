@@ -1,18 +1,21 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { createRoofConcept, roofIsVisible } from './roof-concept.js';
+import { attachRoofConcept, roofIsVisible } from './roof-concept.js';
+import { createCourtyardDesign, courtyardLayout, gardenIsVisible } from './courtyard-design.js';
 
 const $ = (selector) => document.querySelector(selector);
 const viewport = $('#viewport');
-const state = { view: 'floor1', cut: true, labels: true, suite: false, top: false, selected: '', daylight: false, roof: false };
+const state = { view: 'whole', cut: false, labels: true, suite: false, top: false, selected: '', daylight: false, roof: true, garden: true, mood: 'day' };
 const roots = new Map(), roomMeshes = new Map(), labels = [], cutPlanes = new Map();
 const caps = new Map(), corrections = new Map();
 const windowFrames = [];
 const suiteIds = new Set(['master-bedroom', 'bathroom-lower', 'suite-passage']);
 const quietLabels = new Set(['west-passage', 'suite-passage', 'east-vestibule']);
 let parameters, plans, renderer, scene, camera, controls;
-let roofConcept = null;
+let roofConcept = null, rainwaterSystem = null;
+let gardenDesign, orbitCamera, courtyardCamera, skyLight, sunLight, ground;
+const gardenLights = [], gardenEmitters = [], glazingGroups = [];
 let needsRender = true;
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
@@ -37,10 +40,11 @@ function makeCutCaps(plan, root) {
   const material = new THREE.MeshBasicMaterial({ color: '#75858b' });
   // 剖切平面在楼层地面以上 1.2 米，补上墙体截面，并保留这个高度的门洞。
   for (const wall of plan.walls) {
-    if (wall.height <= 1200) continue;
+    const relativeCut = 1200 + (plan.level === 1 && /^(yard-|annex-)/.test(wall.id) ? parameters.entrance_proposal.yard_drop_mm : 0);
+    if (wall.height <= relativeCut) continue;
     const dx = wall.b[0] - wall.a[0], dy = wall.b[1] - wall.a[1];
     const length = Math.hypot(dx, dy);
-    const holes = plan.openings.filter(o => o.wall_id === wall.id && (o.sill || 0) <= 1200 && o.head > 1200)
+    const holes = plan.openings.filter(o => o.wall_id === wall.id && (o.sill || 0) <= relativeCut && o.head > relativeCut)
       .map(o => [o.offset, o.offset + o.width]).sort((a, b) => a[0] - b[0]);
     let start = 0;
     for (const [end, next] of [...holes, [length, length]]) {
@@ -144,7 +148,7 @@ function updateView() {
     corrections.get(level).visible = state.suite;
   }
   document.querySelectorAll('[data-view]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.view === state.view)));
-  $('#view-title').textContent = { floor1: '一层', floor2: '二层', whole: '整栋住宅', exploded: '两层展开' }[state.view];
+  $('#view-title').textContent = { floor1: '一层', floor2: '二层', whole: '整栋住宅', exploded: '两层展开', courtyard: '院中视角' }[state.view];
   $('#view-subtitle').textContent = [state.cut ? '1.2 米剖切' : '完整墙体', state.view === 'exploded' ? '楼层间距仅用于展示' : ''].filter(Boolean).join(' · ');
   $('#cutaway').checked = state.cut;
   $('#suite').setAttribute('aria-pressed', String(state.suite));
@@ -160,13 +164,49 @@ function updateView() {
   $('#roof-concept').setAttribute('aria-pressed', String(roofVisible));
   $('#roof-concept').textContent = roofVisible ? '隐藏屋顶概念' : '查看屋顶概念';
   if (roofVisible) $('#view-subtitle').textContent += ' · 概念屋顶，待复核';
+  if (gardenDesign) gardenDesign.visible = gardenIsVisible(state);
+  for (const group of glazingGroups) group.visible = !state.cut && !state.daylight;
+  if (rainwaterSystem) rainwaterSystem.visible = roofIsVisible(state);
+  if (state.view === 'courtyard') $('#view-subtitle').textContent = '起始眼高 1.65 米 · 拖动环看';
+  updateGardenLighting();
   scene.updateMatrixWorld(true);
   updateSelection();
 }
 
+function updateGardenLighting() {
+  const evening = state.mood === 'evening' && gardenIsVisible(state);
+  viewport.classList.toggle('evening', evening);
+  scene.background.set(evening ? '#526275' : '#e6ebe4');
+  ground.material.color.set(evening ? '#778a83' : '#e6ebe4');
+  skyLight.intensity = evening ? .8 : 2.1;
+  skyLight.color.set(evening ? '#b2c5df' : '#fffdf2');
+  sunLight.intensity = evening ? .48 : 2.5;
+  sunLight.color.set(evening ? '#ffbf81' : '#fff4df');
+  renderer.toneMappingExposure = evening ? 1.05 : .98;
+  for (const light of gardenLights) light.visible = evening;
+  for (const material of gardenEmitters) material.emissiveIntensity = evening ? 4 : .35;
+  document.querySelectorAll('[data-mood]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.mood === (evening ? 'evening' : 'day'))));
+  $('#garden-design').checked = state.garden;
+  needsRender = true;
+}
+
 function fitCamera() {
+  camera = state.view === 'courtyard' ? courtyardCamera : orbitCamera;
+  controls.object = camera;
+  if (state.view === 'courtyard') {
+    const yardHeight = -parameters.entrance_proposal.yard_drop_mm / 1000;
+    camera.position.set(6.7, yardHeight + 1.65, -.85);
+    controls.target.set(5.1, yardHeight + 2.15, -7);
+    camera.aspect = viewport.clientWidth / viewport.clientHeight;
+    camera.fov = Math.min(88, THREE.MathUtils.radToDeg(2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(31)) / Math.min(camera.aspect, 1))));
+    camera.updateProjectionMatrix();
+    controls.update();
+    $('#top-view').setAttribute('aria-pressed', 'false');
+    needsRender = true;
+    return;
+  }
   const bounds = new THREE.Box3();
-  // Hidden roof/caps must not enlarge the camera bounds of interior views.
+  // 隐藏的屋顶和剖切补面不应撑大室内视图的相机范围。
   for (const root of roots.values()) root.traverseVisible(obj => {
     if (obj.isMesh) bounds.union(new THREE.Box3().setFromObject(obj));
   });
@@ -220,9 +260,15 @@ function positionLabels() {
 function resize() {
   const width = viewport.clientWidth, height = viewport.clientHeight;
   renderer.setSize(width, height);
-  const half = (camera.userData.height || 28) / 2;
-  camera.left = -half * width / height; camera.right = half * width / height;
-  camera.top = half; camera.bottom = -half;
+  if (camera.isPerspectiveCamera) {
+    camera.aspect = width / height;
+    camera.fov = Math.min(88, THREE.MathUtils.radToDeg(2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(31)) / Math.min(camera.aspect, 1))));
+  }
+  else {
+    const half = (camera.userData.height || 28) / 2;
+    camera.left = -half * width / height; camera.right = half * width / height;
+    camera.top = half; camera.bottom = -half;
+  }
   camera.updateProjectionMatrix();
   needsRender = true;
 }
@@ -242,7 +288,7 @@ async function init() {
   $('#dimensions-note').textContent = `用户估计总宽约 ${parameters.site_width / 1000} 米；主体深 ${parameters.house_depth / 1000} 米、前院深 ${parameters.courtyard_depth / 1000} 米按含墙控制。外墙 ${parameters.exterior_wall_thickness / 10} 厘米、内墙 ${parameters.interior_wall_thickness / 10} 厘米、层高 ${parameters.floor_to_floor / 1000} 米暂定。共享隔墙按中心分摊。`;
   $('#screen-note').textContent = `新增影壁已取消。原有挡墙向院中移动，附属间门前净通道 ${parameters.annex_passage_clear_width / 1000} 米；楼梯朝院子的墙及窗已取消。`;
   scene = new THREE.Scene();
-  scene.background = new THREE.Color('#e9eff4');
+  scene.background = new THREE.Color('#e6ebe4');
   renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.localClippingEnabled = true;
@@ -254,20 +300,25 @@ async function init() {
   renderer.domElement.setAttribute('aria-label', '住宅三维视图，鼠标拖动旋转、滚轮缩放');
   viewport.prepend(renderer.domElement);
   camera = new THREE.OrthographicCamera(-15, 15, 15, -15, .1, 200);
+  orbitCamera = camera;
+  courtyardCamera = new THREE.PerspectiveCamera(62, 1, .08, 200);
   controls = new OrbitControls(camera, renderer.domElement);
   controls.maxPolarAngle = Math.PI * .49;
   controls.minZoom = .35; controls.maxZoom = 6;
+  controls.minDistance = .5; controls.maxDistance = 45;
   controls.listenToKeyEvents(renderer.domElement);
   controls.addEventListener('change', () => { needsRender = true; });
-  scene.add(new THREE.HemisphereLight('#ffffff', '#83919a', 2.2));
+  skyLight = new THREE.HemisphereLight('#fffdf2', '#6f806e', 2.1);
+  scene.add(skyLight);
   const light = new THREE.DirectionalLight('#fff9ec', 2.4);
+  sunLight = light;
   light.position.set(-8, 25, 9); light.target.position.set(parameters.site_width / 2000, 0, -10);
   light.castShadow = true; light.shadow.mapSize.set(2048, 2048);
   Object.assign(light.shadow.camera, { left: -25, right: 25, top: 25, bottom: -25, near: .5, far: 90 });
   light.shadow.bias = -.0003; light.shadow.normalBias = .02;
   scene.add(light, light.target);
-  const ground = new THREE.Mesh(new THREE.PlaneGeometry(150, 150), new THREE.MeshStandardMaterial({ color: '#e9eff4', roughness: 1 }));
-  ground.rotation.x = -Math.PI / 2; ground.position.set(parameters.site_width / 2000, -.22, -10); ground.receiveShadow = true; scene.add(ground);
+  ground = new THREE.Mesh(new THREE.PlaneGeometry(150, 150), new THREE.MeshStandardMaterial({ color: '#e6ebe4', roughness: 1 }));
+  ground.rotation.x = -Math.PI / 2; ground.position.set(parameters.site_width / 2000, -parameters.entrance_proposal.yard_drop_mm / 1000 - .22, -10); ground.receiveShadow = true; scene.add(ground);
   const gltf = await new GLTFLoader().loadAsync('/output/house.glb');
   scene.add(gltf.scene);
   for (const plan of plans) {
@@ -281,6 +332,12 @@ async function init() {
       obj.material = obj.material.clone();
       if (obj.userData.opening_kind === 'window') windowFrames.push(obj);
       obj.castShadow = true; obj.receiveShadow = true;
+      if (['paving', 'pavingLight', 'gravel'].includes(obj.userData.garden_material)) obj.castShadow = false;
+      if (obj.userData.glazing_proxy) {
+        obj.castShadow = false;
+        obj.material.depthWrite = false;
+        obj.material.side = THREE.DoubleSide;
+      }
       if (obj.userData.wall_id || obj.userData.is_proxy) {
         obj.material.clippingPlanes = [clip]; obj.material.clipShadows = true;
       }
@@ -298,18 +355,60 @@ async function init() {
       let y = space.polygon.reduce((n, p) => n + p[1], 0) / space.polygon.length;
       if (space.id === 'courtyard') { x = 5500; y = 3500; }
       if (space.id === 'stairwell') { x = plan.stairs.entry_x + 500; y = parameters.courtyard_depth + 3100; }
-      makeLabel(plan.level, space.label, coordinate(x, y, .06), space.id);
+      const yardHeight = plan.level === 1 && ['courtyard', 'annex-south', 'annex-north'].includes(space.id) ? -parameters.entrance_proposal.yard_drop_mm / 1000 : 0;
+      makeLabel(plan.level, space.label, coordinate(x, y, yardHeight + .06), space.id);
     }
     makeCutCaps(plan, root); makeCorrections(plan, root);
+    const glazing = root.getObjectByName(`FacadeDetails_${plan.level}`) || root.getObjectByName(`FacadeGlazing_${plan.level}`);
+    if (glazing) glazingGroups.push(glazing);
   }
-  // Keep the source GLB intact. The concept inherits the original upper-floor transform.
+  // 模型自带屋顶时直接使用；兼容此前导出的无屋顶模型。
   try {
-    roofConcept = createRoofConcept(THREE, parameters);
-    roots.get(2).add(roofConcept);
+    const roof = attachRoofConcept(THREE, roots.get(2), parameters);
+    roofConcept = roof.group;
+    rainwaterSystem = roots.get(1).getObjectByName('RainwaterSystem');
+    $('#roof-note').textContent = `四坡灰瓦、实体檐口，南向出檐约 60 厘米。${rainwaterSystem ? '檐沟接两端雨水管，收向自家院内。' : ''}${roof.embedded ? '下载模型已同步。' : '当前为浏览器预览。'}结构、防水、排水能力与地下去向待复核。`;
     $('#roof-concept').disabled = false;
   } catch (error) {
     $('#roof-note').textContent = `屋顶概念未加载：${error.message} 原模型保持不变。`;
   }
+  gardenDesign = roots.get(1).getObjectByName('CourtyardDesign');
+  if (!gardenDesign) {
+    gardenDesign = createCourtyardDesign(parameters, plans[0]);
+    roots.get(1).add(gardenDesign);
+    $('#garden-note').textContent = '当前为浏览器庭院预览，下载模型需要重建后同步。';
+  }
+  gardenDesign.traverse(object => {
+    if (object.isMesh && object.material.name === 'garden/lamp') gardenEmitters.push(object.material);
+  });
+  for (const group of glazingGroups) {
+    const emitters = [];
+    group.traverse(object => {
+      if (object.userData.facade_lamp) emitters.push(object);
+      if (object.isMesh && object.material.name.startsWith('exterior/porch-light')) gardenEmitters.push(object.material);
+    });
+    for (const emitter of emitters) {
+      const light = new THREE.SpotLight('#ffd6a1', 18, 5.5, Math.PI / 2.5, .7, 2);
+      light.target.position.set(0, -1, .15);
+      emitter.add(light, light.target); gardenLights.push(light);
+    }
+  }
+  for (const [x, y, h] of courtyardLayout(parameters, plans[0]).lights) {
+    const lamp = new THREE.PointLight('#ffd59b', 10, 4.5, 2);
+    lamp.position.set(x, h + .05 - parameters.entrance_proposal.yard_drop_mm / 1000, -y);
+    roots.get(1).add(lamp); gardenLights.push(lamp);
+  }
+  $('#garden-design').addEventListener('change', event => {
+    state.garden = event.target.checked;
+    if (state.garden && !['whole', 'courtyard'].includes(state.view)) state.view = 'whole';
+    if (state.garden) { state.cut = false; state.roof = true; }
+    updateView(); populateRooms(); fitCamera();
+  });
+  document.querySelectorAll('[data-mood]').forEach(button => button.addEventListener('click', () => {
+    state.mood = button.dataset.mood; state.garden = true; state.cut = false; state.roof = true;
+    if (!['whole', 'courtyard'].includes(state.view)) state.view = 'whole';
+    updateView(); populateRooms(); fitCamera();
+  }));
   $('#roof-concept').addEventListener('click', () => {
     state.roof = !roofIsVisible(state);
     if (state.roof) {
@@ -320,6 +419,10 @@ async function init() {
   });
   document.querySelectorAll('[data-view]').forEach(button => button.addEventListener('click', () => {
     state.view = button.dataset.view;
+    state.cut = !['whole', 'courtyard'].includes(state.view);
+    state.roof = !state.cut;
+    if (state.view === 'courtyard') state.garden = true;
+    state.top = false; state.suite = false; state.daylight = false;
     updateView(); populateRooms(); fitCamera();
   }));
   $('#cutaway').addEventListener('change', event => { state.cut = event.target.checked; if (state.cut) state.daylight = false; updateView(); fitCamera(); });
@@ -335,13 +438,16 @@ async function init() {
     if (state.suite) {
       state.cut = true;
       state.daylight = false;
-      if (state.view === 'whole') { state.view = 'floor1'; populateRooms(); }
+      if (['whole', 'courtyard'].includes(state.view)) { state.view = 'floor1'; populateRooms(); }
       selectRoom(`${visibleLevels()[0]}:master-bedroom`);
     }
     updateView(); fitCamera();
   });
   $('#room-select').addEventListener('change', event => selectRoom(event.target.value));
-  $('#top-view').addEventListener('click', () => { state.top = !state.top; fitCamera(); });
+  $('#top-view').addEventListener('click', () => {
+    if (state.view === 'courtyard') { state.view = 'whole'; updateView(); populateRooms(); }
+    state.top = !state.top; fitCamera();
+  });
   $('#reset-view').addEventListener('click', () => { state.top = false; fitCamera(); });
   $('#compare').addEventListener('click', () => {
     $('#drawing-floor').value = state.view === 'floor2' ? '2' : '1';

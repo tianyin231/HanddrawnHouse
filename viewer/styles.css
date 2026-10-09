@@ -1,7 +1,7 @@
 :root {
   color-scheme: light;
-  --ink: #203647; --muted: #677c8c; --line: #dce3e9;
-  --accent: #386aaf; --canvas: #e9eff4; --white: #fff;
+  --ink: #2e423a; --muted: #728178; --line: #dce3dc;
+  --accent: #476b53; --canvas: #e6ebe4; --white: #fff;
   font-family: "Microsoft YaHei UI", "PingFang SC", "Microsoft YaHei", sans-serif;
   font-size: 14px; color: var(--ink); background: var(--canvas);
 }
@@ -12,7 +12,7 @@ button, a, select, summary { -webkit-tap-highlight-color: transparent; }
 button, select { color: inherit; }
 button, summary { cursor: pointer; }
 button { border: 1px solid var(--line); border-radius: 6px; background: white; padding: 9px 13px; }
-button:hover { background: #edf3fa; }
+button:hover { background: #edf2ea; }
 button:focus-visible, a:focus-visible, select:focus-visible, input:focus-visible, summary:focus-visible, canvas:focus-visible { outline: 3px solid #82a8dc; outline-offset: 3px; }
 a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
@@ -31,6 +31,14 @@ button[aria-pressed="true"] { background: var(--accent); border-color: var(--acc
 .workspace { display: grid; grid-template-columns: 276px minmax(0, 1fr); height: calc(100dvh - 76px); min-height: 510px; }
 .sidebar { background: var(--white); padding: 10px 22px 22px; overflow-y: auto; border-right: 1px solid var(--line); }
 .control-section { padding: 21px 0; border-bottom: 1px solid var(--line); }
+.garden-section > p:first-of-type { color: var(--muted); font-size: 12px; margin-bottom: 15px; }
+.garden-section h2 { font-family: 'Microsoft YaHei', sans-serif; font-size: 18px; margin-bottom: 6px; }
+.mood-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-bottom: 9px; }
+.mood-buttons button { font-size: 12px; }
+.garden-section .check-row { margin-top: 15px; }
+.garden-note { color: var(--muted); font-size: 11px; margin-top: 11px; }
+.garden-assumptions { margin-top: 10px; font-size: 11px; color: var(--muted); }
+.garden-assumptions p { margin-top: 7px; }
 h2 { font-size: 14px; font-weight: 600; margin: 0 0 14px; }
 p { line-height: 1.75; margin: 0; }
 .view-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-bottom: 21px; }
@@ -38,11 +46,14 @@ p { line-height: 1.75; margin: 0; }
 .check-row { display: flex; align-items: center; gap: 9px; font-size: 13px; cursor: pointer; }
 input[type="checkbox"] { width: 15px; height: 15px; margin: 0; accent-color: var(--accent); }
 .control-hint { font-size: 11px; color: var(--muted); margin: 8px 0 15px 24px; }
+#roof-note { display: block; margin: 9px 0 0; }
+#roof-concept { margin-top: 14px; }
 .suite-section p { font-size: 12px; color: var(--muted); margin-bottom: 13px; }
 .daylight-section p { font-size: 11px; color: var(--muted); margin: 0 0 12px; }
 .daylight-section .daylight-issue { color: #8b622d; border-left: 2px solid #c5a56f; padding-left: 9px; margin-top: 12px; }
 .daylight-section .check-row { margin-bottom: 10px; }
-.outline-button { width: 100%; color: var(--accent); border-color: #9ab5d8; font-size: 12px; }
+.outline-button { width: 100%; color: var(--accent); border-color: #a6b9a9; font-size: 12px; }
+.outline-button[aria-pressed="true"] { color: white; }
 .correction-key { display: flex; gap: 16px; font-size: 11px; margin-top: 11px; }
 .correction-key span { display: flex; gap: 5px; align-items: center; }
 .correction-key i { display: block; height: 3px; width: 14px; }
@@ -63,6 +74,8 @@ select { background: white; border: 1px solid var(--line); border-radius: 5px; p
 .viewport-bar { position: absolute; z-index: 3; top: 22px; left: 26px; right: 26px; display: flex; align-items: center; justify-content: space-between; gap: 15px; pointer-events: none; }
 #view-title { display: block; font-size: 19px; font-weight: 500; }
 #view-subtitle { display: block; margin-top: 6px; font-size: 11px; color: var(--muted); }
+#viewport.evening #view-title { color: #f3f3e8; }
+#viewport.evening #view-subtitle, #viewport.evening .viewport-footer { color: #d6dfd7; }
 .camera-buttons { display: flex; gap: 7px; pointer-events: auto; }
 .camera-buttons button { font-size: 12px; background: #ffffffed; }
 .camera-buttons button[aria-pressed="true"] { background: var(--accent); }

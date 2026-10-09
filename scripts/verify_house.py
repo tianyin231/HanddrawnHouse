@@ -3,7 +3,9 @@ from pathlib import Path
 import json
 import math
 import struct
+import subprocess
 import bpy
+import bmesh
 from mathutils import Vector
 
 ROOT=Path(__file__).resolve().parents[1]
@@ -40,6 +42,93 @@ porch_hit,porch_point=floor_hit(upper,(P["west_bay_width"]+stair["entry_x"])/200
 assert not yard_hit,"二层楼板错误覆盖院子"
 assert not stair_hit,"二层楼梯洞未切通"
 assert porch_hit and abs(porch_point[2]-P["floor_to_floor"]/1000)<1e-5
+# 验证真实入口高差；旧的一层大板不得仍覆盖降低后的庭院。
+entrance=P["entrance_proposal"]
+drop=entrance["yard_drop_mm"]/1000
+lower=bpy.data.objects["F1/floor/property-boundary"]
+assert not floor_hit(lower,6.4,3.5)[0],"室内楼板仍盖在院面上"
+yard=bpy.data.objects["F1/room-floor/courtyard"]
+assert abs(floor_hit(yard,6.4,3.5)[1][2]+drop)<1e-5
+entry_tops=[]
+for i in range(1,entrance["riser_count"]+1):
+    obj=bpy.data.objects[f"F1/entrance/step-{i}"]
+    lo,hi=bounds([obj])
+    hit,point=floor_hit(obj,(lo[0]+hi[0])/2,(lo[1]+hi[1])/2)
+    assert hit and abs(point[2]-(-drop+i*drop/entrance["riser_count"]))<1e-5
+    assert abs(hi[0]-lo[0]-entrance["width_mm"]/1000)<1e-5
+    if i<entrance["riser_count"]: assert abs(hi[1]-lo[1]-entrance["tread_mm"]/1000)<1e-5
+    entry_tops.append(point[2])
+assert abs(hi[1]-P["courtyard_depth"]/1000)<1e-5
+assert abs(floor_hit(lower,entrance["center_x_mm"]/1000,P["courtyard_depth"]/1000+.2)[1][2])<1e-5
+for obj in objects:
+    if obj.name.startswith("F1/wall/") and obj.get("wall_id","").startswith(("yard-","annex-")):
+        assert abs(bounds([obj])[0][2]+drop)<1e-5,"院墙或附属间悬空"
+# 检查实际保存的实体及父子标高，避免只验证浏览器生成函数。
+envelope=json.loads(subprocess.run(["node",str(ROOT/"scripts/export-roof.mjs")],
+    check=True,capture_output=True,text=True,encoding="utf-8").stdout)
+roof_root=bpy.data.objects["RoofConcept"]
+roof=bpy.data.objects["RoofConcept/roof-assembly"]
+assert roof_root.parent==bpy.data.objects["Floor_2"] and roof.parent==roof_root
+assert roof_root["concept_only"] and roof_root["model_status"]=="needs_review"
+assert roof_root["classification"]==envelope["classification"]
+assert len(roof.data.vertices)==len(envelope["positions"])
+assert len(roof.data.polygons)==len(envelope["triangles"])
+for vertex,(x,y,z) in zip(roof.data.vertices,envelope["positions"]):
+    assert (vertex.co-Vector((x,-z,y))).length<1e-5
+assert [face.material_index for face in roof.data.polygons]==envelope["materials"]
+bm=bmesh.new()
+bm.from_mesh(roof.data)
+assert all(edge.is_manifold for edge in bm.edges),"屋顶体量未闭合"
+assert bm.calc_volume(signed=True)>0,"屋顶体量朝向错误"
+bm.free()
+roof_bounds=bounds([roof])
+assert abs(roof_bounds[0][2]-(P["floor_to_floor"]/1000+envelope["localMinHeightM"]))<1e-5
+assert abs(roof_bounds[1][2]-envelope["worldRidgeHeightMm"]/1000)<1e-5
+assert abs(roof_bounds[0][1]-envelope["footprintMm"][1]/1000)<1e-5
+assert not floor_hit(roof,P["site_width"]/2000,P["courtyard_depth"]/2000)[0]
+rainwater=bpy.data.objects["RainwaterSystem"]
+assert rainwater.parent==bpy.data.objects["Floor_1"]
+routes=json.loads(rainwater["routes"])
+assert len(routes)==2
+for route,outlet in zip(routes,envelope["drainageOutlets"]):
+    path=route["centerline_m"]
+    x,y,z=outlet["position"]
+    assert not floor_hit(roof,x,y)[0],"雨水管接到了封死的檐沟"
+    assert (Vector(path[0])-Vector((x,y,z+P["floor_to_floor"]/1000-.008))).length<1e-6
+    assert all(b[2]<a[2] for a,b in zip(path,path[1:])),"雨水管反坡"
+    assert all(.05<point[0]<P["site_width"]/1000-.05 and point[1]<P["courtyard_depth"]/1000 for point in path)
+    assert abs(path[-1][2]-(-drop+.025))<1e-6
+for level in (1,2):
+    facade=bpy.data.objects[f"FacadeDetails_{level}"]
+    assert facade.parent==bpy.data.objects[f"Floor_{level}"]
+    assert facade["model_status"]=="needs_review"
+    plan=json.loads((ROOT/f"plan_floor_{level}.json").read_text(encoding="utf-8"))
+    elevation=(level-1)*P["floor_to_floor"]/1000
+    for opening in plan["openings"]:
+        if opening["kind"]!="window": continue
+        panes=[o for o in facade.children if o.get("opening_id")==opening["id"] and o.get("glazing_proxy")]
+        assert len(panes)==1,(level,opening["id"],"玻璃遗漏或重复")
+        lo,hi=bounds(panes)
+        assert lo[2]>=elevation+opening["sill"]/1000+.09-1e-5
+        assert hi[2]<=elevation+opening["head"]/1000-.09+1e-5
+        if opening["id"]=="south-kitchen":
+            assert panes[0]["operation"]=="horizontal_sliding" and panes[0]["leaf_count"]==2
+    # 附属间门扇必须随院面落下，不能浮在旧的室内零标高上。
+    for opening_id in (["main-hall-door","annex-south-door","annex-north-door"] if level==1 else ["main-hall-door"]):
+        leaves=[o for o in facade.children if o.get("opening_id")==opening_id]
+        assert leaves
+        lo,hi=bounds(leaves)
+        expected=elevation+(-drop if opening_id.startswith("annex-") else 0)+.012
+        assert abs(lo[2]-expected)<1e-5,(opening_id,lo[2],expected)
+garden_root=bpy.data.objects["CourtyardDesign"]
+garden_objects=list(garden_root.children)
+assert garden_root.parent==bpy.data.objects["Floor_1"]
+assert garden_root["concept_only"] and garden_root["model_status"]=="needs_review"
+garden_bounds=bounds(garden_objects)
+assert garden_bounds[0][0]>=-1e-5 and garden_bounds[1][0]<=P["site_width"]/1000+1e-5
+assert garden_bounds[0][1]>=-1e-5 and garden_bounds[1][1]<=P["courtyard_depth"]/1000+1e-5
+garden_layout=json.loads(garden_root["layout"])
+assert abs(garden_layout["passage"][2]-garden_layout["passage"][0]-P["annex_passage_clear_width"]/1000)<1e-5
 original_bounds=bounds(objects)
 original_count=len(objects)
 # 真实实体边界、楼梯踏面与两层出口，不能只验证图片相似。
@@ -115,9 +204,22 @@ report={
     "upper_courtyard_void":not yard_hit,"upper_stairwell_void":not stair_hit,
     "upper_porch_surface_m":porch_point,
     "stairs":stair,"window_sill_head_ray_checks":window_checks,
+    "entrance":{"status":"proposal_not_measured","yard_elevation_m":-drop,
+        "step_tops_m":entry_tops,"landing_meets_porch":True,"street_level":"not_measured"},
+    "exterior_details":{"status":"proposal_needs_review","window_count":len(window_checks),
+        "door_leaves":"main_hall_both_floors_and_annex","glazing_and_sill_bounds_checked":True},
+    "rainwater":{"status":rainwater["drainage_status"],"routes":routes,
+        "gutter_outlets_open":True,"routes_stay_inside_site":True,"capacity_assessed":False},
     "dimensions":{"outer_width_mm":P["site_width"],"house_depth_mm":P["house_depth"],
                   "courtyard_depth_mm":P["courtyard_depth"],"master_clear_mm":[3670,4170]},
     "daylight_status":"not_simulated_north_middle_room_unresolved",
+    "roof":{"status":"concept_only_needs_review","classification":envelope["classification"],
+            "native_bounds_m":roof_bounds,"world_ridge_height_mm":envelope["worldRidgeHeightMm"],
+            "closed_mesh":True,"courtyard_uncovered":True,"source":"viewer/roof-concept.js",
+            "engineering_acceptance":"not_assessed"},
+    "courtyard_design":{"status":"concept_only_needs_review","native_bounds_m":garden_bounds,
+        "mesh_count":len(garden_objects),"annex_passage_clear_width_mm":P["annex_passage_clear_width"],
+        "lighting_status":"atmosphere_only_not_daylight_simulation","engineering_acceptance":"not_assessed"},
     "note":"验证文件和几何生成一致性；总宽采用用户约数14.7米，墙厚和竖向暂定。未评估承重、日照达标及施工节点。"
 }
 glb=(OUT/"house.glb").read_bytes()
@@ -127,6 +229,8 @@ json_length,kind=struct.unpack_from("<I4s",glb,12)
 assert kind==b"JSON"
 gltf=json.loads(glb[20:20+json_length])
 assert {"Floor_1","Floor_2"}.issubset({n.get("name") for n in gltf["nodes"]})
+roof_node=next(n for n in gltf["nodes"] if n.get("name")=="RoofConcept")
+assert roof_node["extras"]["concept_only"] and roof_node["extras"]["model_status"]=="needs_review"
 assert not gltf.get("extensionsRequired"),"出现未预期的必需扩展"
 report["glb_bytes"]=len(glb)
 report["glb_node_count"]=len(gltf["nodes"])
@@ -138,6 +242,15 @@ imported_bounds=bounds(imported)
 assert len(imported)==original_count
 error=max(abs(a-b) for av,bv in zip(original_bounds,imported_bounds) for a,b in zip(av,bv))
 assert error<1e-4,(original_bounds,imported_bounds)
+imported_roof=bpy.data.objects["RoofConcept/roof-assembly"]
+assert max(abs(a-b) for av,bv in zip(roof_bounds,bounds([imported_roof])) for a,b in zip(av,bv))<1e-4
+assert bpy.data.objects["RoofConcept"]["concept_only"]
+report["roof"]["glb_roundtrip_checked"]=True
+imported_garden=bpy.data.objects["CourtyardDesign"]
+assert imported_garden["concept_only"]
+assert len(imported_garden.children)==len(garden_objects)
+assert max(abs(a-b) for av,bv in zip(garden_bounds,bounds(list(imported_garden.children))) for a,b in zip(av,bv))<1e-4
+report["courtyard_design"]["glb_roundtrip_checked"]=True
 report["glb_roundtrip_mesh_count"]=len(imported)
 report["glb_roundtrip_bounds_error_m"]=error
 report["two_dimensional_checks"]={}

@@ -14,7 +14,7 @@
   <header class="topbar">
     <a class="brand" href="/" aria-label="手绘住宅首页">
       <svg viewBox="0 0 32 32" width="32" height="32" aria-hidden="true"><path d="M3 29V3h26v26H3Zm0-9h13V3m0 17h13M9 20v9m15-9v9M16 11h13" fill="none" stroke="currentColor" stroke-width="2.2"/></svg>
-      <span>手绘住宅<small>两层空间核对</small></span>
+      <span>手绘小院<small>有树荫，也有生活</small></span>
     </a>
     <div class="top-actions">
       <span class="draft">约14.7米 · 墙厚待定</span>
@@ -25,19 +25,31 @@
 
   <main class="workspace">
     <aside class="sidebar" aria-label="模型查看选项">
+      <section class="control-section garden-section">
+        <h2>小院方案</h2>
+        <p>邯郸小院，灰瓦浅墙，树下有座。</p>
+        <div class="mood-buttons" role="group" aria-label="庭院氛围">
+          <button data-mood="day" aria-pressed="true">晴日</button>
+          <button data-mood="evening" aria-pressed="false">傍晚亮灯</button>
+        </div>
+        <button data-view="courtyard" class="outline-button" aria-pressed="false">走进小院</button>
+        <label class="check-row"><input id="garden-design" type="checkbox" checked>显示庭院布置</label>
+        <p id="garden-note" class="garden-note">三级台阶接门廊，浅墙配深色门窗；院墙压顶、窗台滴水与雨水管已补，附属间保留 2 米通道。</p>
+        <details class="garden-assumptions"><summary>设计依据与暂定尺寸</summary><p>按已选的曲周瓦顶参考，借鉴浅墙与深色窗框。院子进屋暂定高差 45 厘米，三级各 15 厘米、踏面 33 厘米；平台与门廊衔接，现场未实测。西侧院门与街道的高差另待复核。</p><p>主屋檐沟暂按 2‰ 找坡，110 毫米雨水管接院内预留雨水口；暴雨排水量、溢流和地下接管未设计。附属间屋面先补收边，排水口另待深化。门窗框扇、双层玻璃与把手为尺寸化示意，开启方向和型材选型待定。</p><p>外观参考：<a href="https://www.bilibili.com/video/BV1r862YgEBa/" target="_blank" rel="noreferrer">2025 年曲周两层住宅设计图</a>；排水构件关系参考<a href="https://marleypipesystems.co.za/installing-rainwater-systems/" target="_blank" rel="noreferrer">厂家安装示意</a>，不作为本地施工验收依据。晴日与傍晚用于比较氛围，不代表真实日照或照度。</p></details>
+      </section>
       <section class="control-section">
         <h2>查看楼层</h2>
         <div class="view-buttons" role="group" aria-label="楼层视图">
-          <button data-view="whole" aria-pressed="false">整栋</button>
+          <button data-view="whole" aria-pressed="true">整栋</button>
           <button data-view="exploded" aria-pressed="false">分层展开</button>
-          <button data-view="floor1" aria-pressed="true">一层</button>
+          <button data-view="floor1" aria-pressed="false">一层</button>
           <button data-view="floor2" aria-pressed="false">二层</button>
         </div>
-        <label class="check-row"><input id="cutaway" type="checkbox" checked>剖切查看室内</label>
+        <label class="check-row"><input id="cutaway" type="checkbox">剖切查看室内</label>
         <p class="control-hint">隐藏 1.2 米以上的墙体，方便看布局。</p>
         <label class="check-row"><input id="labels" type="checkbox" checked>显示房间名称</label>
         <button id="roof-concept" class="outline-button" aria-pressed="false" disabled>查看屋顶概念</button>
-        <p id="roof-note" class="control-hint">主体双坡体量，前院保持挑空。尺寸、承重和排水待复核；原 GLB / Blender 文件不含此预览。</p>
+        <p id="roof-note" class="control-hint">正在核对模型中的概念屋顶…</p>
       </section>
 
       <section class="control-section suite-section">
@@ -72,7 +84,7 @@
         <details>
           <summary>尺寸与模型说明</summary>
           <p id="dimensions-note">正在读取参数…</p>
-          <p>窗洞为设计建议；屋顶仅有可开关的浏览器概念体量，原始模型文件未改变。展示灯光不代表日照模拟；结构、窗洞和排水节点须由当地设计人员深化。</p>
+          <p>屋顶为可隐藏的概念体量，窗洞为设计建议。整栋视图展示完整墙体及屋顶；楼层和剖切视图打开内部空间。展示灯光不代表日照模拟；结构、窗洞和排水节点仍待深化。</p>
         </details>
         <a href="/viewer/survey.html">尺寸校核与现场复测</a>
         <a href="/output/house.blend" download="house.blend">下载 Blender 源文件</a>
@@ -81,7 +93,7 @@
 
     <section id="viewport" aria-label="可旋转的住宅三维模型">
       <div class="viewport-bar">
-        <div><strong id="view-title">一层</strong><span id="view-subtitle">剖切视图</span></div>
+        <div><strong id="view-title">整栋住宅</strong><span id="view-subtitle">完整墙体 · 概念屋顶</span></div>
         <div class="camera-buttons"><button id="top-view" aria-pressed="false">俯视</button><button id="reset-view">复位</button></div>
       </div>
       <div id="loading" role="status">正在打开住宅模型…</div>
@@ -98,7 +110,7 @@
     <div class="dialog-header"><h2>厨房南窗 · 室内视角</h2><button id="close-kitchen-detail" aria-label="关闭厨房窗视图">关闭</button></div>
     <figure>
       <img src="/output/kitchen-window-inside.png" alt="从厨房室内观察南窗，窗外梯段、平台、栏杆及上层楼板按当前尺寸保留">
-      <figcaption>建议推拉窗 2.4 × 1.4 米，窗台高 1.2 米。室内朝南看，画面左侧为东。<br>窗外梯段、平台和栏杆仍有遮挡，保留东窗。此图只表示几何关系，尚未表现玻璃及窗扇细节，不是日照或照度模拟。</figcaption>
+      <figcaption>建议推拉窗 2.4 × 1.4 米，窗台高 1.2 米。室内朝南看，画面左侧为东。<br>窗外梯段、平台和栏杆仍有遮挡，保留东窗。已补两轨框扇、玻璃及把手，型材和五金选型待定；此图不是日照或照度模拟。</figcaption>
     </figure>
   </dialog>
   <script type="module" src="/viewer/app.js"></script>

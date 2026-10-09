@@ -3,12 +3,15 @@ from pathlib import Path
 import importlib.util
 import json
 import math
+import subprocess
 import sys
 import bpy
 import bmesh
 from mathutils import Vector, Quaternion
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "scripts"))
+from exterior_details import create_facade_details, create_rainwater_details
 OUT = ROOT / "output"
 P = json.loads((ROOT / "house_parameters.json").read_text(encoding="utf-8"))
 spec = importlib.util.spec_from_file_location("architecture_skill", ROOT / ".agents/skills/cad-2d-to-3d/scripts/build_architecture_blender.py")
@@ -58,15 +61,16 @@ def collection(name):
     return col
 
 
-def mesh_object(name, verts, faces, col, mat):
+def mesh_object(name, verts, faces, col, mat, recalculate=True):
     mesh=bpy.data.meshes.new(name+"/mesh")
     mesh.from_pydata(verts,[],faces)
     mesh.update()
-    bm=bmesh.new()
-    bm.from_mesh(mesh)
-    bmesh.ops.recalc_face_normals(bm,faces=bm.faces)
-    bm.to_mesh(mesh)
-    bm.free()
+    if recalculate:
+        bm=bmesh.new()
+        bm.from_mesh(mesh)
+        bmesh.ops.recalc_face_normals(bm,faces=bm.faces)
+        bm.to_mesh(mesh)
+        bm.free()
     obj=bpy.data.objects.new(name,mesh)
     col.objects.link(obj)
     obj.data.materials.append(mat)
@@ -191,11 +195,112 @@ def configure_render(camera, target, scale, size=(1500,1350)):
 def export_glb(path):
     bpy.ops.object.select_all(action="DESELECT")
     for obj in bpy.context.scene.objects:
-        if obj.get("model_part") or obj.get("model_root"):
+        if obj.get("model_part") or obj.get("model_root") or obj.get("model_component"):
             obj.hide_set(False)
             obj.select_set(True)
     bpy.ops.export_scene.gltf(filepath=str(path),export_format="GLB",use_selection=True,
         export_extras=True,export_cameras=False,export_lights=False,export_animations=False)
+
+
+def create_roof_concept():
+    # 与浏览器共用概念几何；此处只转换坐标，不重复定义屋顶尺寸。
+    result=subprocess.run(["node",str(ROOT/"scripts/export-roof.mjs")],
+        check=True,capture_output=True,text=True,encoding="utf-8")
+    envelope=json.loads(result.stdout)
+    upper=bpy.data.objects["Floor_2"]
+    col=collection("architecture/roof-concept")
+    root=bpy.data.objects.new("RoofConcept",None)
+    col.objects.link(root)
+    root.parent=upper
+    root["model_component"]=True
+    root["concept_only"]=True
+    root["model_status"]="needs_review"
+    root["source"]="house_parameters.json"
+    root["classification"]=envelope["classification"]
+    root["proposal"]=envelope["proposal"]
+    root["world_ridge_height_mm"]=envelope["worldRidgeHeightMm"]
+    materials=[pbr(m["name"],m["color"],m["roughness"]) for m in envelope["materialDefinitions"]]
+    # Three.js: X东/Y上/Z南；Blender: X东/Y北/Z上，保持右手坐标系。
+    vertices=[(x,-z,y) for x,y,z in envelope["positions"]]
+    mesh=mesh_object("RoofConcept/roof-assembly",vertices,envelope["triangles"],col,materials[0])
+    mesh.parent=root
+    mesh["concept_only"]=True
+    mesh["model_status"]="needs_review"
+    for material in materials[1:]: mesh.data.materials.append(material)
+    for polygon,index in zip(mesh.data.polygons,envelope["materials"]): polygon.material_index=index
+    return root,mesh,envelope
+
+
+def create_courtyard_design():
+    result=subprocess.run(["node",str(ROOT/"scripts/export-courtyard.mjs")],
+        check=True,capture_output=True,text=True,encoding="utf-8")
+    design=json.loads(result.stdout)
+    col=collection("landscape/courtyard-concept")
+    root=bpy.data.objects.new("CourtyardDesign",None)
+    col.objects.link(root)
+    root.parent=bpy.data.objects["Floor_1"]
+    for key,value in design["metadata"].items():
+        root[key]=json.dumps(value,ensure_ascii=False) if isinstance(value,dict) else value
+    for item in design["meshes"]:
+        options=item["material"]
+        material=pbr("garden/"+item["materialName"],options["color"],options["roughness"],options.get("metalness",0))
+        if "emissive" in options:
+            bsdf=next(node for node in material.node_tree.nodes if node.type=="BSDF_PRINCIPLED")
+            color=options["emissive"]
+            bsdf.inputs["Emission Color"].default_value=tuple(srgb(int(color[i:i+2],16)/255) for i in (1,3,5))+(1,)
+            bsdf.inputs["Emission Strength"].default_value=options["emissiveIntensity"]
+        points=item["positions"]
+        vertices=[(points[i],-points[i+2],points[i+1]) for i in range(0,len(points),3)]
+        faces=[(i,i+1,i+2) for i in range(0,len(vertices),3)]
+        # 导入的是逐三角面展开的网格，保留原始绕序与法线；孤立面不能重新猜内外。
+        obj=mesh_object(item["name"],vertices,faces,col,material,recalculate=False)
+        obj.parent=root
+        obj["garden_material"]=item["materialName"]
+        obj["concept_only"]=True
+        normals=item["normals"]
+        for polygon in obj.data.polygons: polygon.use_smooth=True
+        obj.data.normals_split_custom_set_from_vertices([(normals[i],-normals[i+2],normals[i+1]) for i in range(0,len(normals),3)])
+    return root
+
+
+def create_entrance_proposal(plan, detail, stone, metal):
+    """室内仍为 ±0，院面暂降 450 毫米；同步降低院墙、门柱和附属间。"""
+    q=P["entrance_proposal"]
+    drop=q["yard_drop_mm"]/1000
+    floor=bpy.data.objects["floor/property-boundary"]
+    for vertex in floor.data.vertices:
+        if vertex.co.y<Y0: vertex.co.y=Y0
+    yard_ids={wall["id"] for wall in plan["walls"] if wall["id"].startswith(("yard-","annex-"))}
+    for obj in list(bpy.context.scene.objects):
+        if obj.get("wall_id") in yard_ids or obj.get("space_id") in ("courtyard","annex-south","annex-north") or obj.name.startswith("yard/gate-pier"):
+            obj.location.z-=drop
+            obj["site_offset_mm"]=-q["yard_drop_mm"]
+            if obj.name.startswith("room-floor/"):
+                for vertex in obj.data.vertices: vertex.co.z=0
+    plinth=pbr("exterior/plinth","#747d7e",.95)
+    box("yard/lowered-slab",(W/2,Y0/2,-drop-.102),(W,Y0,.20),detail,plinth)
+    # 只表达地坪高差的封闭基座，不是地下基础施工做法。
+    base=box("entrance/plinth",(W/2,(Y0+Y1)/2,-(drop+.20)/2),(W,Y1-Y0,drop-.20),detail,plinth)
+    base["concept_only"]=True
+    cx=q["center_x_mm"]/1000
+    width=q["width_mm"]/1000
+    landing=Y0-q["landing_outside_mm"]/1000
+    tread=q["tread_mm"]/1000
+    riser=drop/q["riser_count"]
+    start=landing-(q["riser_count"]-1)*tread
+    for i in range(q["riser_count"]):
+        y0=start+i*tread
+        y1=Y0 if i==q["riser_count"]-1 else y0+tread
+        top=-drop+(i+1)*riser
+        obj=box(f"entrance/step-{i+1}",(cx,(y0+y1)/2,(-drop+top)/2),(width,y1-y0,top+drop),detail,stone)
+        obj["concept_only"]=True
+        obj["model_status"]="needs_review"
+        obj["riser_mm"]=riser*1000
+        box(f"entrance/nosing-{i+1}",(cx,y0+.035,top-.002),(width-.10,.035,.006),detail,metal)
+    for x in (cx-width/2+.045,cx+width/2-.045):
+        for y,z in ((start+.12,-drop+riser),(landing+.15,0)):
+            rod("entrance/handrail-post",(x,y,z),(x,y,z+.90),detail,metal,.017)
+        rod("entrance/handrail",(x,start+.12,-drop+riser+.90),(x,landing+.15,.90),detail,metal,.025)
 
 
 def build_floor(level):
@@ -219,10 +324,10 @@ def build_floor(level):
     for obj in cuts.objects: obj.hide_render=True
     white=pbr("display/wall-ivory","#eeece4")
     plinth=pbr("display/slab","#929d95")
-    frame=pbr("display/opening-proxy","#b28d5b")
-    window_frame=pbr("display/window-frame","#428da0",.45,.15)
-    metal=pbr("display/rail","#626e65",.40,.40)
-    stair_mat=pbr("display/stair","#c8c9bd")
+    frame=pbr("display/opening-proxy","#655b4d")
+    window_frame=pbr("display/window-frame","#414b50",.45,.15)
+    metal=pbr("display/rail","#4a5356",.40,.40)
+    stair_mat=pbr("display/stair","#c8c8bf")
     floor=bpy.data.objects["floor/property-boundary"]
     # Skill 默认薄板0.05米，改为参数指定楼板厚度，顶标高仍是0。
     for vertex in floor.data.vertices:
@@ -277,18 +382,8 @@ def build_floor(level):
             obj.hide_render=False
             obj["model_part"]=True
             obj["is_proxy"]=True
-    if level==1:
-        # 两扇推拉窗仅表示框与中缝，开启轨道、玻璃及五金仍由窗厂深化。
-        op=next(o for o in plan["openings"] if o["id"]=="south-kitchen")
-        wall=wall_map[op["wall_id"]]
-        x=(wall["a"][0]+op["offset"]+op["width"]/2)/1000
-        obj=box("opening/south-kitchen/meeting-stiles",(x,wall["a"][1]/1000,(op["sill"]+op["head"])/2000),
-            (.07,.08,(op["head"]-op["sill"])/1000),detail,window_frame)
-        obj["opening_id"]="south-kitchen"
-        obj["opening_kind"]="window"
-        obj["wall_id"]=op["wall_id"]
-        obj["is_proxy"]=True
-        obj["operation"]="horizontal_sliding"
+    if level==1: create_entrance_proposal(plan,detail,stair_mat,metal)
+    create_facade_details(plan,P,box,mesh_object,collection,pbr)
     font=bpy.data.fonts.load(FONT_PATH,check_existing=True)
     for obj in bpy.data.collections[SKILL.SPACE_COLLECTION_NAME].objects:
         obj.hide_render=True
@@ -305,8 +400,8 @@ def build_floor(level):
     root["acceptance_status"]="needs_review"
     for obj in list(scene.objects):
         if obj!=root:
-            obj.parent=root
-            obj.name=f"F{level}/"+obj.name
+            if obj.parent is None: obj.parent=root
+            if not obj.get("facade_root"): obj.name=f"F{level}/"+obj.name
     root.location.z=plan["elevation"]/1000
     for col in list(scene.collection.children):
         if col==parent: continue
@@ -343,6 +438,9 @@ def assemble():
             loaded.collections=[name for name in available.collections if name.startswith(f"Floor_{level} /")]
         for col in loaded.collections:
             scene.collection.children.link(col)
+    roof_root,roof_mesh,envelope=create_roof_concept()
+    garden=create_courtyard_design()
+    rainwater=create_rainwater_details(P,envelope,box,mesh_object,collection,pbr)
     bpy.ops.object.camera_add()
     camera=bpy.context.object
     camera.name="总览相机"
@@ -353,6 +451,8 @@ def assemble():
     scene["model_status"]="needs_review"
     scene["source_floor_order"]="图1一层；图2二层"
     scene["courtyard_upper_floor"]="void_confirmed_by_user"
+    scene["roof_status"]="concept_only_not_structural_or_drainage_design"
+    scene["courtyard_design_status"]="concept_only_pending_site_and_material_review"
     scene["parameters"]=(ROOT/"house_parameters.json").read_text(encoding="utf-8")
     for filename in ("house_parameters.json","plan_floor_1.json","plan_floor_2.json"):
         text=bpy.data.texts.new(filename)
@@ -362,11 +462,21 @@ def assemble():
     scene.render.filepath=str(OUT/"house-stacked.png")
     bpy.ops.render.render(write_still=True)
     upper=bpy.data.objects["Floor_2"]
+    roof_mesh.hide_render=True
+    for obj in rainwater.children: obj.hide_render=True
+    for level in (1,2):
+        for obj in bpy.data.objects[f"FacadeDetails_{level}"].children: obj.hide_render=True
+    for obj in garden.children: obj.hide_render=True
     upper.location.z+=5.0
     configure_render(camera,(W/2,11,4.7),30,(1500,1500))
     scene.render.filepath=str(OUT/"house-exploded.png")
     bpy.ops.render.render(write_still=True)
     upper.location.z-=5.0
+    roof_mesh.hide_render=False
+    for obj in rainwater.children: obj.hide_render=False
+    for level in (1,2):
+        for obj in bpy.data.objects[f"FacadeDetails_{level}"].children: obj.hide_render=False
+    for obj in garden.children: obj.hide_render=False
     # 从厨房内按真实楼层标高观察窗外楼梯，保留二层楼板的遮挡。
     # 此图只表达空间关系；Workbench 展示灯光不用于判断日照或照度。
     kw=P["kitchen_south_window"]

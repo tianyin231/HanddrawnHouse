@@ -2,17 +2,17 @@
   "status": "pass",
   "model_status": "needs_review",
   "blender_version": "5.2.1 LTS",
-  "native_mesh_count": 582,
+  "native_mesh_count": 780,
   "native_bounds_m": [
     [
       -2.8312206268310547e-07,
-      0.0,
-      -0.20000000298023224
+      -7.629394360719743e-08,
+      -0.6520000100135803
     ],
     [
-      14.699999809265137,
-      20.0,
-      6.199999809265137
+      14.700000762939453,
+      20.000001907348633,
+      8.371000289916992
     ]
   ],
   "floor_roots": [
@@ -91,6 +91,83 @@
     "F2/east-bedroom",
     "F2/east-small"
   ],
+  "entrance": {
+    "status": "proposal_not_measured",
+    "yard_elevation_m": -0.45,
+    "step_tops_m": [
+      -0.2999992370605469,
+      -0.15000039339065552,
+      3.8743019104003906e-07
+    ],
+    "landing_meets_porch": true,
+    "street_level": "not_measured"
+  },
+  "exterior_details": {
+    "status": "proposal_needs_review",
+    "window_count": 30,
+    "door_leaves": "main_hall_both_floors_and_annex",
+    "glazing_and_sill_bounds_checked": true
+  },
+  "rainwater": {
+    "status": "visible_route_only_capacity_overflow_and_outfall_pending",
+    "routes": [
+      {
+        "id": "west",
+        "centerline_m": [
+          [
+            0.12,
+            6.32,
+            6.212000000000001
+          ],
+          [
+            0.12,
+            6.32,
+            6.000000000000001
+          ],
+          [
+            0.12,
+            6.88,
+            5.440000000000001
+          ],
+          [
+            0.12,
+            6.88,
+            -0.425
+          ]
+        ],
+        "diameter_mm": 110
+      },
+      {
+        "id": "east",
+        "centerline_m": [
+          [
+            14.58,
+            6.32,
+            6.212000000000001
+          ],
+          [
+            14.58,
+            6.32,
+            6.000000000000001
+          ],
+          [
+            14.58,
+            6.88,
+            5.440000000000001
+          ],
+          [
+            14.58,
+            6.88,
+            -0.425
+          ]
+        ],
+        "diameter_mm": 110
+      }
+    ],
+    "gutter_outlets_open": true,
+    "routes_stay_inside_site": true,
+    "capacity_assessed": false
+  },
   "dimensions": {
     "outer_width_mm": 14700,
     "house_depth_mm": 13000,
@@ -101,11 +178,53 @@
     ]
   },
   "daylight_status": "not_simulated_north_middle_room_unresolved",
+  "roof": {
+    "status": "concept_only_needs_review",
+    "classification": "hipped_tiled_roof_proposal",
+    "native_bounds_m": [
+      [
+        0.0,
+        6.21999979019165,
+        6.159999847412109
+      ],
+      [
+        14.699999809265137,
+        20.0,
+        8.371000289916992
+      ]
+    ],
+    "world_ridge_height_mm": 8371,
+    "closed_mesh": true,
+    "courtyard_uncovered": true,
+    "source": "viewer/roof-concept.js",
+    "engineering_acceptance": "not_assessed",
+    "glb_roundtrip_checked": true
+  },
+  "courtyard_design": {
+    "status": "concept_only_needs_review",
+    "native_bounds_m": [
+      [
+        0.24000000953674316,
+        -7.629394360719743e-08,
+        -0.4620000123977661
+      ],
+      [
+        14.699999809265137,
+        6.980000019073486,
+        2.5938336849212646
+      ]
+    ],
+    "mesh_count": 15,
+    "annex_passage_clear_width_mm": 2000,
+    "lighting_status": "atmosphere_only_not_daylight_simulation",
+    "engineering_acceptance": "not_assessed",
+    "glb_roundtrip_checked": true
+  },
   "note": "验证文件和几何生成一致性；总宽采用用户约数14.7米，墙厚和竖向暂定。未评估承重、日照达标及施工节点。",
-  "glb_bytes": 1491736,
-  "glb_node_count": 584,
-  "glb_mesh_count": 582,
-  "glb_roundtrip_mesh_count": 582,
+  "glb_bytes": 8249780,
+  "glb_node_count": 789,
+  "glb_mesh_count": 780,
+  "glb_roundtrip_mesh_count": 780,
   "glb_roundtrip_bounds_error_m": 0.0,
   "two_dimensional_checks": {
     "1": {

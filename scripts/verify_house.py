@@ -132,11 +132,28 @@ for level in (1,2):
             assert panes[0]["operation"]=="horizontal_sliding" and panes[0]["leaf_count"]==2
     # 附属间门扇必须随院面落下，不能浮在旧的室内零标高上。
     for opening_id in (["main-hall-door","annex-south-door","annex-north-door"] if level==1 else ["main-hall-door"]):
-        leaves=[o for o in facade.children if o.get("opening_id")==opening_id]
+        door_root=bpy.data.objects[f"DoorDesign_{level}"]
+        leaves=[child for node in door_root.children if json.loads(node.get("motion","{}" )).get("opening_id")==opening_id for child in node.children if child.type=="MESH"]
         assert leaves
         lo,hi=bounds(leaves)
-        expected=elevation+(-drop if opening_id.startswith("annex-") else 0)+.012
+        expected=elevation+(-drop if opening_id.startswith("annex-") else 0)+.032
         assert abs(lo[2]-expected)<1e-5,(opening_id,lo[2],expected)
+interior_checks={}
+interior_bounds={}
+for level in (1,2):
+    interior=bpy.data.objects[f"InteriorDesign_{level}"]
+    assert interior.parent==bpy.data.objects[f"Floor_{level}"]
+    assert interior["interior_style"]=="a" and interior["model_status"]=="needs_review"
+    layout=json.loads(interior["layout"])
+    assert len([item for item in layout["items"] if item["type"]=="bed"])==4
+    assert len([item for item in layout["items"] if item["type"]=="toilet"])==2
+    assert not any(item["space"] in ("north-small","east-small") for item in layout["items"])
+    lo,hi=bounds([o for o in interior.children_recursive if o.type=="MESH"])
+    assert lo[0]>=-1e-5 and hi[0]<=P["site_width"]/1000+1e-5
+    assert lo[1]>=P["courtyard_depth"]/1000-1e-5,"室内家具或吊顶侵入前院"
+    interior_bounds[level]=[lo,hi]
+    interior_checks[str(level)]={"style":"a_provisional","mesh_count":len([o for o in interior.children_recursive if o.type=="MESH"]),
+        "beds":4,"bathrooms":2,"unconfirmed_room_uses_preserved":True}
 garden_root=bpy.data.objects["CourtyardDesign"]
 garden_objects=list(garden_root.children)
 assert garden_root.parent==bpy.data.objects["Floor_1"]
@@ -218,6 +235,7 @@ for level in (1,2):
         annex=walls["annex-west"]
         assert annex["a"][0]-annex["thickness"]/2-(screen["a"][0]+screen["thickness"]/2)==P["annex_passage_clear_width"]
 report={
+    "interior_design":interior_checks,
     "status":"pass", "model_status":"needs_review", "blender_version":bpy.app.version_string,
     "native_mesh_count":original_count,"native_bounds_m":original_bounds,
     "floor_roots":["Floor_1","Floor_2"],
@@ -275,6 +293,12 @@ assert imported_garden["concept_only"]
 assert len(imported_garden.children)==len(garden_objects)
 assert max(abs(a-b) for av,bv in zip(garden_bounds,bounds(list(imported_garden.children))) for a,b in zip(av,bv))<1e-4
 report["courtyard_design"]["glb_roundtrip_checked"]=True
+for level in (1,2):
+    interior=bpy.data.objects[f"InteriorDesign_{level}"]
+    assert interior.parent.name==f"Floor_{level}"
+    actual=bounds([o for o in interior.children_recursive if o.type=="MESH"])
+    assert max(abs(a-b) for aa,bb in zip(interior_bounds[level],actual) for a,b in zip(aa,bb))<1e-4
+    report["interior_design"][str(level)]["glb_roundtrip_checked"]=True
 report["glb_roundtrip_mesh_count"]=len(imported)
 report["glb_roundtrip_bounds_error_m"]=error
 report["two_dimensional_checks"]={}

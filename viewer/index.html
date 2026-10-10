@@ -49,20 +49,38 @@
         <label class="check-row"><input id="cutaway" type="checkbox">剖切查看室内</label>
         <p class="control-hint">隐藏 1.2 米以上的墙体，方便看布局。</p>
         <label class="check-row"><input id="labels" type="checkbox" checked>显示房间名称</label>
+        <label class="room-view-label" for="render-quality">浏览画质</label>
+        <select id="render-quality"><option value="auto">自动 · 按视口调整</option><option value="clear">清晰 · 更多细节</option><option value="smooth">流畅 · 降低渲染负担</option></select>
+        <p id="quality-note" class="control-hint"></p>
         <button id="roof-concept" class="outline-button" aria-pressed="false" disabled>查看屋顶概念</button>
         <p id="roof-note" class="control-hint">正在核对模型中的概念屋顶…</p>
       </section>
 
       <section class="control-section interior-section">
-        <h2>室内风格试配</h2>
+        <h2>室内方案</h2>
         <div class="interior-styles" role="group" aria-label="室内风格">
           <button data-interior-style="a" aria-label="A 温润木色" aria-pressed="true"><span class="material-swatches" aria-hidden="true"><i style="background:#c6c4bd"></i><i style="background:#a98a66"></i><i style="background:#d8d1c2"></i></span>A · 温润木色</button>
           <button data-interior-style="b" aria-label="B 清爽灰白" aria-pressed="false"><span class="material-swatches" aria-hidden="true"><i style="background:#e1d7c7"></i><i style="background:#785c47"></i><i style="background:#a9bbc1"></i></span>B · 清爽灰白</button>
         </div>
         <p id="interior-description" class="solar-note"></p>
-        <div class="mood-buttons"><button data-interior-room="hall">看一层厅堂</button><button data-interior-room="bedroom">看二层主卧</button></div>
-        <label class="check-row"><input id="interior-preview" type="checkbox">显示室内试配</label>
-        <p class="solar-note">按现有净尺寸试放厅堂与主卧家具。当前为可切换预览，未写入下载模型；厨卫、灯具与其他房间待风格选定后深化。</p>
+        <div class="mood-buttons"><button data-interior-room="1:hall">看一层厅堂</button><button data-interior-room="2:master-bedroom">看二层主卧</button></div>
+        <label class="room-view-label" for="interior-room-select">从房间内看</label>
+        <select id="interior-room-select"><option value="">选择厨房、卫浴或卧室</option></select>
+        <label class="check-row"><input id="interior-preview" type="checkbox" checked>显示室内布置</label>
+        <label class="check-row"><input id="interior-use-zones" type="checkbox">查看通道与使用空间</label>
+        <p id="interior-note" class="solar-note">正在核对下载模型中的室内方案…</p>
+        <a id="design-review-link" href="/viewer/design-review.html" class="outline-button">装修尺寸图与复核清单 ↗</a>
+        <label class="room-view-label" for="motion-select">门与柜体开合</label>
+        <select id="motion-select"><option value="">选择构件，或点模型中的门扇</option></select>
+        <button id="motion-toggle" class="outline-button" disabled>打开构件</button>
+        <p id="motion-note" class="solar-note" aria-live="polite">房门、柜门、抽屉与冰箱门可开合；遇到墙体或家具会停止。</p>
+        <button id="walk-start" class="outline-button">进入自由行走</button>
+        <p class="solar-note">从当前房间或院子出发。WASD / 方向键移动，拖动看四周，Q / E 转向，空格开关面前的门，Esc 退出。触屏使用画面内方向键。</p>
+        <details class="solar-assumptions"><summary>厨卫与设备接驳</summary>
+          <label class="room-view-label" for="service-select">查看候选接点</label>
+          <select id="service-select"><option value="">选择设备</option></select>
+          <p id="service-note" class="solar-note">标记设备旁的候选位置。给水入口、污水出口、配电箱和热水来源未定，主管路线尚未设计。</p>
+        </details>
       </section>
 
       <section class="control-section solar-section">
@@ -114,6 +132,7 @@
           <p id="room-size">可以查看暂定尺寸与相邻空间。</p>
           <p id="room-connections"></p>
           <p id="room-daylight"></p>
+          <p id="room-furnishing"></p>
           <button id="kitchen-window" class="outline-button" hidden>从厨房看窗外遮挡</button>
         </div>
       </section>
@@ -123,7 +142,7 @@
         <details>
           <summary>尺寸与模型说明</summary>
           <p id="dimensions-note">正在读取参数…</p>
-          <p>屋顶及窗洞仍为待复核方案。整栋视图展示完整墙体及屋顶；楼层和剖切视图打开内部空间。日照对比使用暂定邻房体量，只判断太阳方向与几何遮挡；室内风格仍是浏览器试配。结构、灯具参数与排水能力待深化。</p>
+          <p>屋顶及窗洞仍为待复核方案。整栋视图展示完整墙体及屋顶；楼层和剖切视图打开内部空间。日照对比使用暂定邻房体量，只判断太阳方向与几何遮挡。室内默认 A 已纳入下载模型，配色、家具规格及设备接法仍可调整；结构、灯具光度参数与排水能力待深化。</p>
         </details>
         <a href="/viewer/survey.html">尺寸校核与现场复测</a>
         <a href="/output/house.blend" download="house.blend">下载 Blender 源文件</a>
@@ -138,6 +157,17 @@
       <div id="loading" role="status">正在打开住宅模型…</div>
       <div id="room-labels"></div>
       <div id="solar-badge" hidden></div>
+      <div id="walk-pad" hidden>
+        <div class="walk-caption"><span id="walk-status"></span><button id="walk-exit">退出行走</button></div>
+        <div class="walk-actions"><button id="walk-interact">开关面前构件</button><span>拖动环看</span></div>
+        <div class="walk-direction" role="group" aria-label="行走方向">
+          <button data-walk-key="KeyW" aria-label="向前走">↑</button>
+          <button data-walk-key="KeyA" aria-label="向左走">←</button>
+          <button data-walk-key="KeyS" aria-label="向后走">↓</button>
+          <button data-walk-key="KeyD" aria-label="向右走">→</button>
+        </div>
+        <span class="walk-crosshair" aria-hidden="true">+</span>
+      </div>
       <div class="viewport-footer"><span>拖动旋转 · 滚轮缩放 · 右键平移</span><span id="scale-note">单位：米</span></div>
     </section>
   </main>

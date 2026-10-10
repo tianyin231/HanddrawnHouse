@@ -14,6 +14,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 from exterior_details import create_facade_details, create_rainwater_details
 from exterior_details import merge_material_parts
 from site_details import load_site, create_site_details
+from interior_details import create_interior
 OUT = ROOT / "output"
 P = json.loads((ROOT / "house_parameters.json").read_text(encoding="utf-8"))
 spec = importlib.util.spec_from_file_location("architecture_skill", ROOT / ".agents/skills/cad-2d-to-3d/scripts/build_architecture_blender.py")
@@ -387,6 +388,7 @@ def build_floor(level):
     if level==1: create_entrance_proposal(plan,detail,stair_mat,metal)
     create_site_details(plan,P,load_site(ROOT),box,mesh_object,collection,pbr,merge_material_parts)
     create_facade_details(plan,P,box,mesh_object,collection,pbr)
+    create_interior(ROOT,level,collection,mesh_object,pbr,srgb)
     font=bpy.data.fonts.load(FONT_PATH,check_existing=True)
     for obj in bpy.data.collections[SKILL.SPACE_COLLECTION_NAME].objects:
         obj.hide_render=True
@@ -404,7 +406,7 @@ def build_floor(level):
     for obj in list(scene.objects):
         if obj!=root:
             if obj.parent is None: obj.parent=root
-            if not obj.get("facade_root") and not obj.get("site_root"): obj.name=f"F{level}/"+obj.name
+            if not any(obj.get(key) for key in ("facade_root","site_root","interior_root","door_root")): obj.name=f"F{level}/"+obj.name
     root.location.z=plan["elevation"]/1000
     for col in list(scene.collection.children):
         if col==parent: continue
@@ -415,7 +417,11 @@ def build_floor(level):
     # 相机已归楼层根节点，局部视点无需叠加楼层标高。
     configure_render(camera,(W/2,(Y0+Y1)/2 if level==2 else Y1/2,.35),23 if level==2 else 26)
     scene.render.filepath=str(OUT/f"floor-{level}-3d.png")
+    for obj in scene.objects:
+        if obj.get("interior_kind")=="ceiling":obj.hide_render=True
     bpy.ops.render.render(write_still=True)
+    for obj in scene.objects:
+        if obj.get("interior_kind")=="ceiling":obj.hide_render=False
     for obj in scene.objects:
         if obj.type=="FONT": obj.hide_set(False)
     scene["model_status"]="needs_review"
@@ -456,6 +462,7 @@ def assemble():
     scene["courtyard_upper_floor"]="void_confirmed_by_user"
     scene["roof_status"]="concept_only_not_structural_or_drainage_design"
     scene["courtyard_design_status"]="concept_only_pending_site_and_material_review"
+    scene["interior_design_status"]="provisional_style_a_dimensions_and_services_pending_review"
     scene["parameters"]=(ROOT/"house_parameters.json").read_text(encoding="utf-8")
     for filename in ("house_parameters.json","plan_floor_1.json","plan_floor_2.json"):
         text=bpy.data.texts.new(filename)
@@ -470,6 +477,8 @@ def assemble():
     for level in (1,2):
         for obj in bpy.data.objects[f"FacadeDetails_{level}"].children: obj.hide_render=True
     for obj in garden.children: obj.hide_render=True
+    for obj in scene.objects:
+        if obj.get("interior_kind")=="ceiling":obj.hide_render=True
     upper.location.z+=5.0
     configure_render(camera,(W/2,11,4.7),30,(1500,1500))
     scene.render.filepath=str(OUT/"house-exploded.png")
@@ -480,6 +489,8 @@ def assemble():
     for level in (1,2):
         for obj in bpy.data.objects[f"FacadeDetails_{level}"].children: obj.hide_render=False
     for obj in garden.children: obj.hide_render=False
+    for obj in scene.objects:
+        if obj.get("interior_kind")=="ceiling":obj.hide_render=False
     # 从厨房内按真实楼层标高观察窗外楼梯，保留二层楼板的遮挡。
     # 此图只表达空间关系；Workbench 展示灯光不用于判断日照或照度。
     kw=P["kitchen_south_window"]

@@ -116,27 +116,12 @@ def create_facade_details(plan, p, box, mesh, collection, material):
             faces += [(i, (i + 1) % n, (i + 1) % n + n, i + n) for i in range(n)]
             pieces.append(mesh("sloped-sill-with-drip", vertices, faces, col, stone))
             operation = "horizontal_sliding" if count == 2 else "inward_sash_proposal"
-        else:
-            count = 2 if width > 1.5 else 1
-            operation = "closed_door_leaves_swing_pending"
-            for index in range(count):
-                left = .055 + index * (width - .11) / count + .003
-                right = .055 + (index + 1) * (width - .11) / count - .003
-                block("door-leaf", left, right, .012, top - .055, .065, 0, frame)
-                block("door-inset", left + .075, right - .075, .14, top - .16, .012, .037, wood)
-                for h in (.38, top - .39):
-                    block("door-panel-joint", left + .08, right - .08, h, h + .008, .006, .045, frame)
-                handle_x = right - .09 if index == 0 else left + .09
-                for offset in (-.075, .095):
-                    block("door-pull", handle_x - .012, handle_x + .012, .90, 1.34, .024, offset, metal)
-                    for h in (.95, 1.29):
-                        block("handle-fixing", handle_x - .014, handle_x + .014, h, h + .026, .07, offset / 2, metal)
-                for h in (.28, top - .28):
-                    block("door-hinge", left - .012, left + .006, h, h + .11, .065, 0, metal)
-        merge_material_parts(pieces, f"facade/{opening['id']}", root, {
-            "opening_id": opening["id"], "detail_kind": "window" if is_window else "door",
-            "operation": operation, "model_status": "needs_review", "is_proxy": True,
-            "leaf_count": count, "wall_id": wall["id"]})
+        if is_window:
+            merge_material_parts(pieces, f"facade/{opening['id']}", root, {
+                "opening_id": opening["id"], "detail_kind": "window",
+                "operation": operation, "model_status": "needs_review", "is_proxy": True,
+                "leaf_count": count, "wall_id": wall["id"]})
+        # 门扇统一由共享 DoorDesign 生成，保留门廊灯和原有洞口门框。
         if opening["id"] == "main-hall-door":
             pieces = []
             wall_face = wall["thickness"] / 2000

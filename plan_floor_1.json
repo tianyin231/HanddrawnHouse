@@ -1,0 +1,1929 @@
+{
+  "schema_version": 1,
+  "name": "手绘住宅 · 1层",
+  "units": "mm",
+  "level": 1,
+  "elevation": 0,
+  "reference_image": "work/reference-floor-1.png",
+  "acceptance": {
+    "status": "needs_review",
+    "note": "用户授权按两张草图制作可修改模型，尺寸和推定开口待核。"
+  },
+  "acceptance_checks": [
+    {
+      "id": "overall-dimensions",
+      "question": "总宽约14.7米；含墙尺寸分配与墙厚仍需现场复核",
+      "status": "needs_review",
+      "review_region": [
+        0,
+        7000,
+        14700,
+        20000
+      ]
+    },
+    {
+      "id": "east-spaces",
+      "question": "右侧门洞与小间用途、分隔是否正确",
+      "status": "needs_review",
+      "review_region": [
+        10700,
+        10500,
+        14700,
+        20000
+      ]
+    },
+    {
+      "id": "master-ensuite",
+      "question": "黄色处敞开、红色处设套间入口门，下方卫浴归主卧套间",
+      "status": "confirmed",
+      "review_region": [
+        0,
+        11500,
+        4000,
+        16000
+      ],
+      "note": "用户确认两层均修改；门洞宽度和准确位置仍为推定。"
+    },
+    {
+      "id": "dining-correction",
+      "status": "confirmed",
+      "question": "红墙保留，入口移至北端黄色框；餐厨隔墙取消，原两门洞封实",
+      "review_region": [
+        10520,
+        10500,
+        14700,
+        16000
+      ],
+      "note": "用户图示并确认：一层红色长墙保留，仅北端黄色框留餐厨入口，取消原两个门洞；去掉餐厨之间黄色隔墙。沙发和餐桌靠墙。新入口暂取1100毫米，北端墙垛90毫米，尺寸未实测。"
+    }
+  ],
+  "calibration": {
+    "model_points": [
+      [
+        0,
+        0
+      ],
+      [
+        14700,
+        0
+      ],
+      [
+        0,
+        7000
+      ],
+      [
+        14700,
+        7000
+      ],
+      [
+        0,
+        20000
+      ],
+      [
+        14700,
+        20000
+      ]
+    ],
+    "image_points": [
+      [
+        72.0,
+        1272.0
+      ],
+      [
+        954.0,
+        1272.0
+      ],
+      [
+        72.0,
+        852.0
+      ],
+      [
+        954.0,
+        852.0
+      ],
+      [
+        72.0,
+        72.0
+      ],
+      [
+        954.0,
+        72.0
+      ]
+    ],
+    "note": "分区透视校正后的绘图坐标；配准残差不代表测量精度。"
+  },
+  "property_boundary": [
+    [
+      0,
+      0
+    ],
+    [
+      14700,
+      0
+    ],
+    [
+      14700,
+      20000
+    ],
+    [
+      0,
+      20000
+    ]
+  ],
+  "excluded_regions": [],
+  "walls": [
+    {
+      "id": "west-house",
+      "a": [
+        120.0,
+        7000
+      ],
+      "b": [
+        120.0,
+        20000
+      ],
+      "thickness": 240,
+      "class": "exterior",
+      "evidence": "inferred",
+      "height": 3000
+    },
+    {
+      "id": "east-house",
+      "a": [
+        14580.0,
+        7000
+      ],
+      "b": [
+        14580.0,
+        20000
+      ],
+      "thickness": 240,
+      "class": "exterior",
+      "evidence": "inferred",
+      "height": 3000
+    },
+    {
+      "id": "north-house",
+      "a": [
+        0,
+        19880.0
+      ],
+      "b": [
+        14700,
+        19880.0
+      ],
+      "thickness": 240,
+      "class": "exterior",
+      "evidence": "inferred",
+      "height": 3000
+    },
+    {
+      "id": "south-master",
+      "a": [
+        0,
+        7120.0
+      ],
+      "b": [
+        4000,
+        7120.0
+      ],
+      "thickness": 240,
+      "class": "exterior",
+      "evidence": "inferred",
+      "height": 3000
+    },
+    {
+      "id": "west-spine",
+      "a": [
+        4000,
+        7000
+      ],
+      "b": [
+        4000,
+        14000
+      ],
+      "thickness": 180,
+      "class": "interior",
+      "evidence": "inferred",
+      "height": 3000
+    },
+    {
+      "id": "bathroom-east",
+      "a": [
+        2820,
+        11500
+      ],
+      "b": [
+        2820,
+        16000
+      ],
+      "thickness": 180,
+      "class": "interior",
+      "evidence": "inferred",
+      "height": 3000
+    },
+    {
+      "id": "bathroom-divider",
+      "a": [
+        0,
+        13500
+      ],
+      "b": [
+        2820,
+        13500
+      ],
+      "thickness": 180,
+      "class": "interior",
+      "evidence": "inferred",
+      "height": 3000
+    },
+    {
+      "id": "bathroom-south",
+      "a": [
+        0,
+        11500
+      ],
+      "b": [
+        2820,
+        11500
+      ],
+      "thickness": 180,
+      "class": "interior",
+      "evidence": "inferred",
+      "height": 3000
+    },
+    {
+      "id": "nw-bedroom-east",
+      "a": [
+        4200,
+        16000
+      ],
+      "b": [
+        4200,
+        20000
+      ],
+      "thickness": 180,
+      "class": "interior",
+      "evidence": "inferred",
+      "height": 3000
+    },
+    {
+      "id": "nw-bedroom-south",
+      "a": [
+        0,
+        16000
+      ],
+      "b": [
+        4200,
+        16000
+      ],
+      "thickness": 180,
+      "class": "interior",
+      "evidence": "inferred",
+      "height": 3000
+    },
+    {
+      "id": "ne-bedroom-west",
+      "a": [
+        10700,
+        16000
+      ],
+      "b": [
+        10700,
+        20000
+      ],
+      "thickness": 180,
+      "class": "interior",
+      "evidence": "inferred",
+      "height": 3000
+    },
+    {
+      "id": "ne-bedroom-south",
+      "a": [
+        10700,
+        16000
+      ],
+      "b": [
+        14700,
+        16000
+      ],
+      "thickness": 180,
+      "class": "interior",
+      "evidence": "inferred",
+      "height": 3000
+    },
+    {
+      "id": "hall-front",
+      "a": [
+        4000,
+        10500
+      ],
+      "b": [
+        10700,
+        10500
+      ],
+      "thickness": 180,
+      "class": "interior",
+      "evidence": "inferred",
+      "height": 3000
+    },
+    {
+      "id": "stair-north",
+      "a": [
+        10700,
+        10500
+      ],
+      "b": [
+        14700,
+        10500
+      ],
+      "thickness": 180,
+      "class": "interior",
+      "evidence": "inferred",
+      "height": 3000
+    },
+    {
+      "id": "suite-entry-partition",
+      "a": [
+        2820,
+        14000
+      ],
+      "b": [
+        4000,
+        14000
+      ],
+      "thickness": 180,
+      "class": "interior",
+      "evidence": "inferred",
+      "height": 3000
+    },
+    {
+      "id": "north-small-east",
+      "a": [
+        5700,
+        16000
+      ],
+      "b": [
+        5700,
+        20000
+      ],
+      "thickness": 180,
+      "class": "interior",
+      "evidence": "inferred",
+      "height": 3000
+    },
+    {
+      "id": "north-middle-south",
+      "a": [
+        4200,
+        16000
+      ],
+      "b": [
+        10700,
+        16000
+      ],
+      "thickness": 180,
+      "class": "interior",
+      "evidence": "inferred",
+      "height": 3000
+    },
+    {
+      "id": "east-spine",
+      "a": [
+        10700,
+        10500
+      ],
+      "b": [
+        10700,
+        16000
+      ],
+      "thickness": 180,
+      "class": "interior",
+      "evidence": "inferred",
+      "height": 3000
+    },
+    {
+      "id": "yard-west",
+      "a": [
+        120.0,
+        4000
+      ],
+      "b": [
+        120.0,
+        7000
+      ],
+      "thickness": 240,
+      "class": "exterior",
+      "evidence": "inferred",
+      "height": 1600
+    },
+    {
+      "id": "yard-south",
+      "a": [
+        0,
+        120.0
+      ],
+      "b": [
+        14700,
+        120.0
+      ],
+      "thickness": 240,
+      "class": "exterior",
+      "evidence": "inferred",
+      "height": 1600
+    },
+    {
+      "id": "yard-east",
+      "a": [
+        14580.0,
+        0
+      ],
+      "b": [
+        14580.0,
+        7000
+      ],
+      "thickness": 240,
+      "class": "exterior",
+      "evidence": "inferred",
+      "height": 1600
+    },
+    {
+      "id": "annex-west",
+      "a": [
+        10700,
+        0
+      ],
+      "b": [
+        10700,
+        4000
+      ],
+      "thickness": 180,
+      "class": "interior",
+      "evidence": "inferred",
+      "height": 2700
+    },
+    {
+      "id": "annex-north",
+      "a": [
+        10700,
+        4000
+      ],
+      "b": [
+        14700,
+        4000
+      ],
+      "thickness": 180,
+      "class": "interior",
+      "evidence": "inferred",
+      "height": 2700
+    },
+    {
+      "id": "annex-divider",
+      "a": [
+        10700,
+        2000
+      ],
+      "b": [
+        14700,
+        2000
+      ],
+      "thickness": 180,
+      "class": "interior",
+      "evidence": "inferred",
+      "height": 2700
+    },
+    {
+      "id": "yard-screen",
+      "a": [
+        8520,
+        0
+      ],
+      "b": [
+        8520,
+        4000
+      ],
+      "thickness": 180,
+      "class": "interior",
+      "evidence": "known",
+      "height": 1800
+    }
+  ],
+  "openings": [
+    {
+      "id": "nw-bedroom-door",
+      "kind": "door",
+      "wall_id": "nw-bedroom-south",
+      "offset": 2960.0,
+      "width": 900,
+      "head": 2200,
+      "evidence": "inferred",
+      "source": "草图门弧/通道位置；门宽高推定"
+    },
+    {
+      "id": "ne-bedroom-door",
+      "kind": "door",
+      "wall_id": "ne-bedroom-south",
+      "offset": 180,
+      "width": 900,
+      "head": 2200,
+      "evidence": "inferred",
+      "source": "草图门弧/通道位置；门宽高推定"
+    },
+    {
+      "id": "master-suite-entry-door",
+      "kind": "door",
+      "wall_id": "suite-entry-partition",
+      "offset": 90.0,
+      "width": 1000,
+      "head": 2200,
+      "evidence": "inferred",
+      "source": "用户红色标注：套间入口门；门宽和精确坐标暂定"
+    },
+    {
+      "id": "bathroom-lower-door",
+      "kind": "door",
+      "wall_id": "bathroom-east",
+      "offset": 500,
+      "width": 900,
+      "head": 2200,
+      "evidence": "inferred",
+      "source": "草图门弧/通道位置；门宽高推定"
+    },
+    {
+      "id": "bathroom-upper-door",
+      "kind": "door",
+      "wall_id": "bathroom-east",
+      "offset": 3100,
+      "width": 900,
+      "head": 2200,
+      "evidence": "inferred",
+      "source": "草图门弧/通道位置；门宽高推定"
+    },
+    {
+      "id": "main-hall-door",
+      "kind": "door",
+      "wall_id": "hall-front",
+      "offset": 1800.0,
+      "width": 2000,
+      "head": 2200,
+      "evidence": "inferred",
+      "source": "草图门弧/通道位置；门宽高推定"
+    },
+    {
+      "id": "north-small-door",
+      "kind": "door",
+      "wall_id": "north-middle-south",
+      "offset": 350,
+      "width": 800,
+      "head": 2200,
+      "evidence": "inferred",
+      "source": "草图门弧/通道位置；门宽高推定"
+    },
+    {
+      "id": "middle-bedroom-door",
+      "kind": "door",
+      "wall_id": "north-middle-south",
+      "offset": 5400,
+      "width": 950,
+      "head": 2200,
+      "evidence": "inferred",
+      "source": "草图门弧/通道位置；门宽高推定"
+    },
+    {
+      "id": "dining-entry",
+      "kind": "door",
+      "wall_id": "east-spine",
+      "offset": 4310,
+      "width": 1100,
+      "head": 2200,
+      "evidence": "inferred",
+      "source": "用户图示并确认：一层红色长墙保留，仅北端黄色框留餐厨入口，取消原两个门洞；去掉餐厨之间黄色隔墙。沙发和餐桌靠墙。新入口暂取1100毫米，北端墙垛90毫米，尺寸未实测。",
+      "door_leaf": false,
+      "operation": "open_passage"
+    },
+    {
+      "id": "annex-south-door",
+      "kind": "door",
+      "wall_id": "annex-west",
+      "offset": 500,
+      "width": 800,
+      "head": 2200,
+      "evidence": "inferred",
+      "source": "草图门弧/通道位置；门宽高推定"
+    },
+    {
+      "id": "annex-north-door",
+      "kind": "door",
+      "wall_id": "annex-west",
+      "offset": 2500,
+      "width": 800,
+      "head": 2200,
+      "evidence": "inferred",
+      "source": "草图门弧/通道位置；门宽高推定"
+    },
+    {
+      "id": "west-master",
+      "kind": "window",
+      "wall_id": "west-house",
+      "offset": 1700,
+      "width": 900,
+      "sill": 2100,
+      "head": 2700,
+      "height": 600,
+      "space_id": "master-bedroom",
+      "evidence": "inferred",
+      "design_status": "proposal",
+      "source": "西侧临街：高小窗建议，窗台2.1米；兼顾隐私，仍需核对街侧条件"
+    },
+    {
+      "id": "west-bath-lower",
+      "kind": "window",
+      "wall_id": "west-house",
+      "offset": 5000,
+      "width": 900,
+      "sill": 2100,
+      "head": 2700,
+      "height": 600,
+      "space_id": "bathroom-lower",
+      "evidence": "inferred",
+      "design_status": "proposal",
+      "source": "西侧临街：高小窗建议，窗台2.1米；兼顾隐私，仍需核对街侧条件"
+    },
+    {
+      "id": "west-bath-upper",
+      "kind": "window",
+      "wall_id": "west-house",
+      "offset": 7400,
+      "width": 900,
+      "sill": 2100,
+      "head": 2700,
+      "height": 600,
+      "space_id": "bathroom-upper",
+      "evidence": "inferred",
+      "design_status": "proposal",
+      "source": "西侧临街：高小窗建议，窗台2.1米；兼顾隐私，仍需核对街侧条件"
+    },
+    {
+      "id": "west-bedroom",
+      "kind": "window",
+      "wall_id": "west-house",
+      "offset": 10300,
+      "width": 900,
+      "sill": 2100,
+      "head": 2700,
+      "height": 600,
+      "space_id": "bedroom-nw",
+      "evidence": "inferred",
+      "design_status": "proposal",
+      "source": "西侧临街：高小窗建议，窗台2.1米；兼顾隐私，仍需核对街侧条件"
+    },
+    {
+      "id": "south-master",
+      "kind": "window",
+      "wall_id": "south-master",
+      "offset": 900,
+      "width": 2200,
+      "sill": 900,
+      "head": 2400,
+      "height": 1500,
+      "space_id": "master-bedroom",
+      "evidence": "inferred",
+      "design_status": "proposal",
+      "source": "朝自家前院开窗：前院7米、上方挑空；南邻一层遮挡尚未做日照计算"
+    },
+    {
+      "id": "east-stairs",
+      "kind": "window",
+      "wall_id": "east-house",
+      "offset": 900,
+      "width": 2000,
+      "sill": 1900,
+      "head": 2700,
+      "height": 800,
+      "space_id": "stairwell",
+      "evidence": "inferred",
+      "design_status": "proposal",
+      "source": "东侧整条约3米空地：建议直接开窗，窗位及有效开扇待深化"
+    },
+    {
+      "id": "east-north-bedroom",
+      "kind": "window",
+      "wall_id": "east-house",
+      "offset": 10200,
+      "width": 2100,
+      "sill": 900,
+      "head": 2400,
+      "height": 1500,
+      "space_id": "bedroom-ne",
+      "evidence": "inferred",
+      "design_status": "proposal",
+      "source": "东侧整条约3米空地：建议直接开窗，窗位及有效开扇待深化"
+    },
+    {
+      "id": "north-nw",
+      "kind": "window",
+      "wall_id": "north-house",
+      "offset": 1700,
+      "width": 900,
+      "sill": 2100,
+      "head": 2700,
+      "height": 600,
+      "space_id": "bedroom-nw",
+      "evidence": "inferred",
+      "design_status": "proposal",
+      "source": "北侧邻居院墙仅隔约0.2至0.3米：小高窗效果待核，未认定采光达标"
+    },
+    {
+      "id": "hall-front-west",
+      "kind": "window",
+      "wall_id": "hall-front",
+      "offset": 350,
+      "width": 1150.0,
+      "sill": 900,
+      "head": 2600,
+      "height": 1700,
+      "space_id": "hall",
+      "evidence": "inferred",
+      "design_status": "proposal",
+      "source": "朝自家前院开窗：前院7米、上方挑空；南邻一层遮挡尚未做日照计算"
+    },
+    {
+      "id": "hall-front-east",
+      "kind": "window",
+      "wall_id": "hall-front",
+      "offset": 4100.0,
+      "width": 1150.0,
+      "sill": 900,
+      "head": 2600,
+      "height": 1700,
+      "space_id": "hall",
+      "evidence": "inferred",
+      "design_status": "proposal",
+      "source": "朝自家前院开窗：前院7米、上方挑空；南邻一层遮挡尚未做日照计算"
+    },
+    {
+      "id": "north-incense",
+      "kind": "window",
+      "wall_id": "north-house",
+      "offset": 4650,
+      "width": 600,
+      "sill": 2100,
+      "head": 2700,
+      "height": 600,
+      "space_id": "north-small",
+      "evidence": "inferred",
+      "design_status": "proposal",
+      "source": "北侧邻居院墙仅隔约0.2至0.3米：小高窗效果待核，未认定采光达标；烧香间另需组织排烟"
+    },
+    {
+      "id": "north-middle-1",
+      "kind": "window",
+      "wall_id": "north-house",
+      "offset": 6500,
+      "width": 900,
+      "sill": 2100,
+      "head": 2700,
+      "height": 600,
+      "space_id": "bedroom-middle",
+      "evidence": "inferred",
+      "design_status": "proposal",
+      "source": "北侧邻居院墙仅隔约0.2至0.3米：小高窗效果待核，未认定采光达标"
+    },
+    {
+      "id": "north-middle-2",
+      "kind": "window",
+      "wall_id": "north-house",
+      "offset": 9000,
+      "width": 900,
+      "sill": 2100,
+      "head": 2700,
+      "height": 600,
+      "space_id": "bedroom-middle",
+      "evidence": "inferred",
+      "design_status": "proposal",
+      "source": "北侧邻居院墙仅隔约0.2至0.3米：小高窗效果待核，未认定采光达标"
+    },
+    {
+      "id": "east-dining",
+      "kind": "window",
+      "wall_id": "east-house",
+      "offset": 6650,
+      "width": 1700,
+      "sill": 900,
+      "head": 2400,
+      "height": 1500,
+      "space_id": "dining",
+      "evidence": "inferred",
+      "design_status": "proposal",
+      "source": "东侧整条约3米空地：建议直接开窗，窗位及有效开扇待深化"
+    },
+    {
+      "id": "east-kitchen",
+      "kind": "window",
+      "wall_id": "east-house",
+      "offset": 4050,
+      "width": 1400,
+      "sill": 1200,
+      "head": 2500,
+      "height": 1300,
+      "space_id": "kitchen",
+      "evidence": "inferred",
+      "design_status": "proposal",
+      "source": "东侧整条约3米空地：建议直接开窗，窗位及有效开扇待深化"
+    },
+    {
+      "id": "south-kitchen",
+      "kind": "window",
+      "wall_id": "stair-north",
+      "offset": 900,
+      "width": 2400,
+      "sill": 1200,
+      "head": 2600,
+      "height": 1400,
+      "space_id": "kitchen",
+      "evidence": "inferred",
+      "design_status": "proposal",
+      "source": "用户确认厨房南面可以开较大窗。建议洞口2.4×1.4米、窗台1.2米，沿南墙距西端0.9米，推拉开启；窗外为高梯段和1.6米转弯平台，墙至梯边约0.59米。保留东窗，南窗作为补充采光通风；窗过梁、框扇及防水节点待深化。",
+      "operation": "horizontal_sliding",
+      "panel_count": 2,
+      "stair_clearance_mm": 590.0,
+      "opening_projection_mm": 0,
+      "glass_status": "frame_proxy_only"
+    }
+  ],
+  "beams": [],
+  "columns": [],
+  "removed_walls": [
+    {
+      "id": "dining-kitchen-divider",
+      "a": [
+        10700,
+        13000
+      ],
+      "b": [
+        14700,
+        13000
+      ],
+      "thickness": 180,
+      "evidence": "known",
+      "source": "用户图示并确认：一层红色长墙保留，仅北端黄色框留餐厨入口，取消原两个门洞；去掉餐厨之间黄色隔墙。沙发和餐桌靠墙。新入口暂取1100毫米，北端墙垛90毫米，尺寸未实测。"
+    }
+  ],
+  "spaces": [
+    {
+      "id": "bedroom-nw",
+      "label": "卧室1",
+      "polygon": [
+        [
+          0,
+          16000
+        ],
+        [
+          4200,
+          16000
+        ],
+        [
+          4200,
+          20000
+        ],
+        [
+          0,
+          20000
+        ]
+      ],
+      "color": "#d9ccb7",
+      "evidence": "inferred",
+      "dimension_basis": "外墙按外缘控制，分间含墙尺寸按共享墙中心分摊；不把含墙尺寸当成净空",
+      "nominal_size_mm": [
+        4200,
+        4000
+      ],
+      "clear_bounds_mm": [
+        240,
+        16090.0,
+        4110.0,
+        19760
+      ],
+      "clear_size_mm": [
+        3870,
+        3670
+      ],
+      "clear_size_note": "按当前墙厚估算的可用矩形范围；未扣柱和装饰层，非竣工净尺寸"
+    },
+    {
+      "id": "bedroom-ne",
+      "label": "卧室3",
+      "polygon": [
+        [
+          10700,
+          16000
+        ],
+        [
+          14700,
+          16000
+        ],
+        [
+          14700,
+          20000
+        ],
+        [
+          10700,
+          20000
+        ]
+      ],
+      "color": "#d9ccb7",
+      "evidence": "inferred",
+      "dimension_basis": "外墙按外缘控制，分间含墙尺寸按共享墙中心分摊；不把含墙尺寸当成净空",
+      "nominal_size_mm": [
+        4000,
+        4000
+      ],
+      "clear_bounds_mm": [
+        10790.0,
+        16090.0,
+        14460,
+        19760
+      ],
+      "clear_size_mm": [
+        3670,
+        3670
+      ],
+      "clear_size_note": "按当前墙厚估算的可用矩形范围；未扣柱和装饰层，非竣工净尺寸"
+    },
+    {
+      "id": "master-bedroom",
+      "label": "主卧",
+      "polygon": [
+        [
+          0,
+          7000
+        ],
+        [
+          4000,
+          7000
+        ],
+        [
+          4000,
+          11500
+        ],
+        [
+          0,
+          11500
+        ]
+      ],
+      "color": "#d9ccb7",
+      "evidence": "inferred",
+      "dimension_basis": "外墙按外缘控制，分间含墙尺寸按共享墙中心分摊；不把含墙尺寸当成净空",
+      "nominal_size_mm": [
+        4000,
+        4500
+      ],
+      "clear_bounds_mm": [
+        240,
+        7240,
+        3910.0,
+        11410.0
+      ],
+      "clear_size_mm": [
+        3670,
+        4170
+      ],
+      "clear_size_note": "按当前墙厚估算的可用矩形范围；未扣柱和装饰层，非竣工净尺寸"
+    },
+    {
+      "id": "bathroom-lower",
+      "label": "主卧卫浴",
+      "polygon": [
+        [
+          0,
+          11500
+        ],
+        [
+          2820,
+          11500
+        ],
+        [
+          2820,
+          13500
+        ],
+        [
+          0,
+          13500
+        ]
+      ],
+      "color": "#bed4d3",
+      "evidence": "inferred",
+      "dimension_basis": "外墙按外缘控制，分间含墙尺寸按共享墙中心分摊；不把含墙尺寸当成净空",
+      "nominal_size_mm": [
+        2820,
+        2000
+      ],
+      "clear_bounds_mm": [
+        240,
+        11590.0,
+        2730.0,
+        13410.0
+      ],
+      "clear_size_mm": [
+        2490,
+        1820
+      ],
+      "clear_size_note": "按当前墙厚估算的可用矩形范围；未扣柱和装饰层，非竣工净尺寸"
+    },
+    {
+      "id": "bathroom-upper",
+      "label": "卫浴1",
+      "polygon": [
+        [
+          0,
+          13500
+        ],
+        [
+          2820,
+          13500
+        ],
+        [
+          2820,
+          16000
+        ],
+        [
+          0,
+          16000
+        ]
+      ],
+      "color": "#bed4d3",
+      "evidence": "inferred",
+      "dimension_basis": "外墙按外缘控制，分间含墙尺寸按共享墙中心分摊；不把含墙尺寸当成净空",
+      "nominal_size_mm": [
+        2820,
+        2500
+      ],
+      "clear_bounds_mm": [
+        240,
+        13590.0,
+        2730.0,
+        15910.0
+      ],
+      "clear_size_mm": [
+        2490,
+        2320
+      ],
+      "clear_size_note": "按当前墙厚估算的可用矩形范围；未扣柱和装饰层，非竣工净尺寸"
+    },
+    {
+      "id": "west-passage",
+      "label": "过道",
+      "polygon": [
+        [
+          2820,
+          14000
+        ],
+        [
+          4000,
+          14000
+        ],
+        [
+          4000,
+          16000
+        ],
+        [
+          2820,
+          16000
+        ]
+      ],
+      "color": "#d3d2c6",
+      "evidence": "inferred",
+      "dimension_basis": "外墙按外缘控制，分间含墙尺寸按共享墙中心分摊；不把含墙尺寸当成净空",
+      "nominal_size_mm": [
+        1180,
+        2000
+      ],
+      "clear_bounds_mm": [
+        2910.0,
+        14090.0,
+        4000,
+        15910.0
+      ],
+      "clear_size_mm": [
+        1090,
+        1820
+      ],
+      "clear_size_note": "按当前墙厚估算的可用矩形范围；未扣柱和装饰层，非竣工净尺寸"
+    },
+    {
+      "id": "suite-passage",
+      "label": "内廊",
+      "polygon": [
+        [
+          2820,
+          11500
+        ],
+        [
+          4000,
+          11500
+        ],
+        [
+          4000,
+          14000
+        ],
+        [
+          2820,
+          14000
+        ]
+      ],
+      "color": "#d9ccb7",
+      "evidence": "inferred",
+      "dimension_basis": "外墙按外缘控制，分间含墙尺寸按共享墙中心分摊；不把含墙尺寸当成净空",
+      "nominal_size_mm": [
+        1180,
+        2500
+      ],
+      "clear_bounds_mm": [
+        2910.0,
+        11500,
+        3910.0,
+        13910.0
+      ],
+      "clear_size_mm": [
+        1000,
+        2410
+      ],
+      "clear_size_note": "按当前墙厚估算的可用矩形范围；未扣柱和装饰层，非竣工净尺寸"
+    },
+    {
+      "id": "hall",
+      "label": "厅堂",
+      "polygon": [
+        [
+          4000,
+          10500
+        ],
+        [
+          10700,
+          10500
+        ],
+        [
+          10700,
+          16000
+        ],
+        [
+          4000,
+          16000
+        ]
+      ],
+      "color": "#e4ddd1",
+      "evidence": "inferred",
+      "dimension_basis": "外墙按外缘控制，分间含墙尺寸按共享墙中心分摊；不把含墙尺寸当成净空",
+      "nominal_size_mm": [
+        6700,
+        5500
+      ],
+      "clear_bounds_mm": [
+        4090.0,
+        10590.0,
+        10610.0,
+        15910.0
+      ],
+      "clear_size_mm": [
+        6520,
+        5320
+      ],
+      "clear_size_note": "按当前墙厚估算的可用矩形范围；未扣柱和装饰层，非竣工净尺寸"
+    },
+    {
+      "id": "porch",
+      "label": "门廊",
+      "polygon": [
+        [
+          4000,
+          7000
+        ],
+        [
+          9600,
+          7000
+        ],
+        [
+          9600,
+          10500
+        ],
+        [
+          4000,
+          10500
+        ]
+      ],
+      "color": "#d3d2c6",
+      "evidence": "inferred",
+      "dimension_basis": "外墙按外缘控制，分间含墙尺寸按共享墙中心分摊；不把含墙尺寸当成净空",
+      "nominal_size_mm": [
+        5600,
+        3500
+      ],
+      "clear_bounds_mm": [
+        4090.0,
+        7000,
+        9600,
+        10410.0
+      ],
+      "clear_size_mm": [
+        5510,
+        3410
+      ],
+      "clear_size_note": "按当前墙厚估算的可用矩形范围；未扣柱和装饰层，非竣工净尺寸"
+    },
+    {
+      "id": "stairwell",
+      "label": "敞开楼梯",
+      "polygon": [
+        [
+          9600,
+          7000
+        ],
+        [
+          14700,
+          7000
+        ],
+        [
+          14700,
+          10500
+        ],
+        [
+          9600,
+          10500
+        ]
+      ],
+      "color": "#d3d2c6",
+      "evidence": "inferred",
+      "dimension_basis": "外墙按外缘控制，分间含墙尺寸按共享墙中心分摊；不把含墙尺寸当成净空",
+      "nominal_size_mm": [
+        5100,
+        3500
+      ],
+      "clear_bounds_mm": [
+        9600,
+        7000,
+        14460,
+        10410.0
+      ],
+      "clear_size_mm": [
+        4860,
+        3410
+      ],
+      "clear_size_note": "按当前墙厚估算的可用矩形范围；未扣柱和装饰层，非竣工净尺寸"
+    },
+    {
+      "id": "north-small",
+      "label": "烧香间",
+      "polygon": [
+        [
+          4200,
+          16000
+        ],
+        [
+          5700,
+          16000
+        ],
+        [
+          5700,
+          20000
+        ],
+        [
+          4200,
+          20000
+        ]
+      ],
+      "color": "#bed4d3",
+      "evidence": "inferred",
+      "dimension_basis": "外墙按外缘控制，分间含墙尺寸按共享墙中心分摊；不把含墙尺寸当成净空",
+      "nominal_size_mm": [
+        1500,
+        4000
+      ],
+      "clear_bounds_mm": [
+        4290.0,
+        16090.0,
+        5610.0,
+        19760
+      ],
+      "clear_size_mm": [
+        1320,
+        3670
+      ],
+      "clear_size_note": "按当前墙厚估算的可用矩形范围；未扣柱和装饰层，非竣工净尺寸"
+    },
+    {
+      "id": "bedroom-middle",
+      "label": "卧室2",
+      "polygon": [
+        [
+          5700,
+          16000
+        ],
+        [
+          10700,
+          16000
+        ],
+        [
+          10700,
+          20000
+        ],
+        [
+          5700,
+          20000
+        ]
+      ],
+      "color": "#d9ccb7",
+      "evidence": "inferred",
+      "dimension_basis": "外墙按外缘控制，分间含墙尺寸按共享墙中心分摊；不把含墙尺寸当成净空",
+      "nominal_size_mm": [
+        5000,
+        4000
+      ],
+      "clear_bounds_mm": [
+        5790.0,
+        16090.0,
+        10610.0,
+        19760
+      ],
+      "clear_size_mm": [
+        4820,
+        3670
+      ],
+      "clear_size_note": "按当前墙厚估算的可用矩形范围；未扣柱和装饰层，非竣工净尺寸"
+    },
+    {
+      "id": "dining",
+      "label": "餐厅",
+      "polygon": [
+        [
+          10700,
+          13000
+        ],
+        [
+          14700,
+          13000
+        ],
+        [
+          14700,
+          16000
+        ],
+        [
+          10700,
+          16000
+        ]
+      ],
+      "color": "#d8d5ba",
+      "evidence": "inferred",
+      "dimension_basis": "外墙按外缘控制，分间含墙尺寸按共享墙中心分摊；不把含墙尺寸当成净空",
+      "nominal_size_mm": [
+        4000,
+        3000
+      ],
+      "clear_bounds_mm": [
+        10790.0,
+        13000,
+        14460,
+        15910.0
+      ],
+      "clear_size_mm": [
+        3670,
+        2910
+      ],
+      "clear_size_note": "按当前墙厚估算的可用矩形范围；未扣柱和装饰层，非竣工净尺寸"
+    },
+    {
+      "id": "kitchen",
+      "label": "厨房",
+      "polygon": [
+        [
+          10700,
+          10500
+        ],
+        [
+          14700,
+          10500
+        ],
+        [
+          14700,
+          13000
+        ],
+        [
+          10700,
+          13000
+        ]
+      ],
+      "color": "#bed4d3",
+      "evidence": "inferred",
+      "dimension_basis": "外墙按外缘控制，分间含墙尺寸按共享墙中心分摊；不把含墙尺寸当成净空",
+      "nominal_size_mm": [
+        4000,
+        2500
+      ],
+      "clear_bounds_mm": [
+        10790.0,
+        10590.0,
+        14460,
+        13000
+      ],
+      "clear_size_mm": [
+        3670,
+        2410
+      ],
+      "clear_size_note": "按当前墙厚估算的可用矩形范围；未扣柱和装饰层，非竣工净尺寸"
+    },
+    {
+      "id": "courtyard",
+      "label": "前院",
+      "polygon": [
+        [
+          0,
+          0
+        ],
+        [
+          14700,
+          0
+        ],
+        [
+          14700,
+          7000
+        ],
+        [
+          0,
+          7000
+        ]
+      ],
+      "color": "#c8ccc0",
+      "evidence": "inferred",
+      "dimension_basis": "外墙按外缘控制，分间含墙尺寸按共享墙中心分摊；不把含墙尺寸当成净空",
+      "nominal_size_mm": [
+        14700,
+        7000
+      ],
+      "clear_bounds_mm": [
+        0,
+        0,
+        14700,
+        7000
+      ],
+      "clear_size_mm": [
+        14700,
+        7000
+      ],
+      "clear_size_note": "按当前墙厚估算的可用矩形范围；未扣柱和装饰层，非竣工净尺寸"
+    },
+    {
+      "id": "annex-south",
+      "label": "附属间A",
+      "polygon": [
+        [
+          10700,
+          0
+        ],
+        [
+          14700,
+          0
+        ],
+        [
+          14700,
+          2000
+        ],
+        [
+          10700,
+          2000
+        ]
+      ],
+      "color": "#d5c6ae",
+      "evidence": "inferred",
+      "dimension_basis": "外墙按外缘控制，分间含墙尺寸按共享墙中心分摊；不把含墙尺寸当成净空",
+      "nominal_size_mm": [
+        4000,
+        2000
+      ],
+      "clear_bounds_mm": [
+        10790.0,
+        0,
+        14700,
+        1910.0
+      ],
+      "clear_size_mm": [
+        3910,
+        1910
+      ],
+      "clear_size_note": "按当前墙厚估算的可用矩形范围；未扣柱和装饰层，非竣工净尺寸"
+    },
+    {
+      "id": "annex-north",
+      "label": "附属间B",
+      "polygon": [
+        [
+          10700,
+          2000
+        ],
+        [
+          14700,
+          2000
+        ],
+        [
+          14700,
+          4000
+        ],
+        [
+          10700,
+          4000
+        ]
+      ],
+      "color": "#d5c6ae",
+      "evidence": "inferred",
+      "dimension_basis": "外墙按外缘控制，分间含墙尺寸按共享墙中心分摊；不把含墙尺寸当成净空",
+      "nominal_size_mm": [
+        4000,
+        2000
+      ],
+      "clear_bounds_mm": [
+        10790.0,
+        2090.0,
+        14700,
+        3910.0
+      ],
+      "clear_size_mm": [
+        3910,
+        1820
+      ],
+      "clear_size_note": "按当前墙厚估算的可用矩形范围；未扣柱和装饰层，非竣工净尺寸"
+    }
+  ],
+  "connections": [
+    {
+      "id": "west-passage-to-bedroom-nw",
+      "spaces": [
+        "west-passage",
+        "bedroom-nw"
+      ],
+      "kind": "door",
+      "evidence": "inferred",
+      "opening_id": "nw-bedroom-door"
+    },
+    {
+      "id": "west-passage-to-bathroom-upper",
+      "spaces": [
+        "west-passage",
+        "bathroom-upper"
+      ],
+      "kind": "door",
+      "evidence": "inferred",
+      "opening_id": "bathroom-upper-door"
+    },
+    {
+      "id": "hall-to-west-passage",
+      "spaces": [
+        "hall",
+        "west-passage"
+      ],
+      "kind": "open",
+      "evidence": "inferred",
+      "segment": [
+        [
+          4000,
+          14000
+        ],
+        [
+          4000,
+          16000
+        ]
+      ]
+    },
+    {
+      "id": "west-passage-to-suite-passage",
+      "spaces": [
+        "west-passage",
+        "suite-passage"
+      ],
+      "kind": "door",
+      "evidence": "inferred",
+      "opening_id": "master-suite-entry-door"
+    },
+    {
+      "id": "suite-passage-to-bathroom-lower",
+      "spaces": [
+        "suite-passage",
+        "bathroom-lower"
+      ],
+      "kind": "door",
+      "evidence": "inferred",
+      "opening_id": "bathroom-lower-door"
+    },
+    {
+      "id": "suite-passage-to-master-bedroom",
+      "spaces": [
+        "suite-passage",
+        "master-bedroom"
+      ],
+      "kind": "open",
+      "evidence": "inferred",
+      "segment": [
+        [
+          2820,
+          11500
+        ],
+        [
+          4000,
+          11500
+        ]
+      ]
+    },
+    {
+      "id": "porch-to-hall",
+      "spaces": [
+        "porch",
+        "hall"
+      ],
+      "kind": "door",
+      "evidence": "inferred",
+      "opening_id": "main-hall-door"
+    },
+    {
+      "id": "porch-to-stairwell",
+      "spaces": [
+        "porch",
+        "stairwell"
+      ],
+      "kind": "open",
+      "evidence": "inferred",
+      "segment": [
+        [
+          9600,
+          7000
+        ],
+        [
+          9600,
+          10500
+        ]
+      ]
+    },
+    {
+      "id": "dining-to-bedroom-ne",
+      "spaces": [
+        "dining",
+        "bedroom-ne"
+      ],
+      "kind": "door",
+      "evidence": "inferred",
+      "opening_id": "ne-bedroom-door"
+    },
+    {
+      "id": "hall-to-north-small",
+      "spaces": [
+        "hall",
+        "north-small"
+      ],
+      "kind": "door",
+      "evidence": "inferred",
+      "opening_id": "north-small-door"
+    },
+    {
+      "id": "hall-to-bedroom-middle",
+      "spaces": [
+        "hall",
+        "bedroom-middle"
+      ],
+      "kind": "door",
+      "evidence": "inferred",
+      "opening_id": "middle-bedroom-door"
+    },
+    {
+      "id": "hall-to-dining",
+      "spaces": [
+        "hall",
+        "dining"
+      ],
+      "kind": "door",
+      "evidence": "inferred",
+      "opening_id": "dining-entry"
+    },
+    {
+      "id": "dining-to-kitchen",
+      "spaces": [
+        "dining",
+        "kitchen"
+      ],
+      "kind": "open",
+      "evidence": "inferred",
+      "segment": [
+        [
+          10700,
+          13000
+        ],
+        [
+          14700,
+          13000
+        ]
+      ]
+    },
+    {
+      "id": "courtyard-to-porch",
+      "spaces": [
+        "courtyard",
+        "porch"
+      ],
+      "kind": "open",
+      "evidence": "inferred",
+      "segment": [
+        [
+          4000,
+          7000
+        ],
+        [
+          9600,
+          7000
+        ]
+      ]
+    },
+    {
+      "id": "courtyard-to-annex-south",
+      "spaces": [
+        "courtyard",
+        "annex-south"
+      ],
+      "kind": "door",
+      "evidence": "inferred",
+      "opening_id": "annex-south-door"
+    },
+    {
+      "id": "courtyard-to-annex-north",
+      "spaces": [
+        "courtyard",
+        "annex-north"
+      ],
+      "kind": "door",
+      "evidence": "inferred",
+      "opening_id": "annex-north-door"
+    }
+  ],
+  "circulation": {
+    "entry_space": "courtyard",
+    "required_reachable_spaces": [
+      "bedroom-nw",
+      "bedroom-ne",
+      "master-bedroom",
+      "bathroom-lower",
+      "bathroom-upper",
+      "west-passage",
+      "suite-passage",
+      "hall",
+      "porch",
+      "stairwell",
+      "north-small",
+      "bedroom-middle",
+      "dining",
+      "kitchen",
+      "courtyard",
+      "annex-south",
+      "annex-north"
+    ]
+  },
+  "evidence": [
+    {
+      "id": "different-floors",
+      "status": "known",
+      "source": "用户回复：两张分别是不同楼层"
+    },
+    {
+      "id": "source-dimensions",
+      "status": "known",
+      "source": "用户确认图上尺寸含墙。主体外轮廓13米、前院7米；主卧4×4.5米、北西卧室4.2米开间、右侧4米开间、餐厅3米、厨房2.5米按标注控制。外墙全部收在边界内，共享隔墙暂按中心分摊。"
+    },
+    {
+      "id": "overall-width",
+      "status": "known",
+      "precision": "approximate",
+      "value_mm": 14700,
+      "source": "用户估计总宽约14.7米，本版以此控制；仍需现场复测，不是原图明确标注值。"
+    },
+    {
+      "id": "verticals",
+      "status": "inferred",
+      "source": "层高3.2米、净墙高3米、楼板0.2米及墙厚均为可调整假设。"
+    },
+    {
+      "id": "openings",
+      "status": "inferred",
+      "source": "图示门洞位置为参考；宽高及未画清的必要通道属于推定。新增外窗为本轮采光设计建议：北、西高小窗，东侧和自家院向正常窗；未进行日照达标计算。"
+    },
+    {
+      "id": "external-windows",
+      "status": "inferred",
+      "source": "图示门洞位置为参考；宽高及未画清的必要通道属于推定。新增外窗为本轮采光设计建议：北、西高小窗，东侧和自家院向正常窗；未进行日照达标计算。"
+    },
+    {
+      "id": "master-ensuite",
+      "status": "known",
+      "source": "用户确认两层均按标注调整：红色为横向套间入口门，黄色为与厅堂相通的敞口；下方卫浴归主卧套间。门轴线暂按距场地前边14米，过道净宽1米，入口洞口1米。",
+      "reference_image": "references/ensuite-correction.png"
+    },
+    {
+      "id": "dining-correction",
+      "status": "known",
+      "source": "用户图示并确认：一层红色长墙保留，仅北端黄色框留餐厨入口，取消原两个门洞；去掉餐厨之间黄色隔墙。沙发和餐桌靠墙。新入口暂取1100毫米，北端墙垛90毫米，尺寸未实测。",
+      "reference_image": "references/dining-correction.png"
+    },
+    {
+      "id": "courtyard-correction",
+      "status": "known",
+      "source": "用户最新红圈：取消新增门内影壁、取消楼梯朝院子的墙及窗；绿色原有挡墙向院中移，确认附属间门前净通道2米。二层临空处保留栏杆。",
+      "reference_image": "references/courtyard-correction.png"
+    },
+    {
+      "id": "kitchen-south-window",
+      "status": "known",
+      "source": "用户确认厨房南向允许开窗，并要求结合楼梯遮挡布置；窗尺寸、分扇属于本轮建议"
+    }
+  ],
+  "parameters_file": "house_parameters.json",
+  "entry": {
+    "kind": "gate",
+    "segment": [
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        4000
+      ]
+    ],
+    "evidence": "inferred",
+    "source": "图2左下侧开口及图1立柱示意"
+  },
+  "annex_passage": {
+    "clear_width_mm": 2000,
+    "bounds": [
+      8610.0,
+      240,
+      10610.0,
+      4000
+    ],
+    "screen_axis_x": 8520
+  },
+  "stairs": {
+    "direction": "west-east-west",
+    "entry_space": "porch",
+    "bounds": [
+      10750,
+      7420,
+      14420,
+      9820
+    ],
+    "entry_x": 9600,
+    "turn_x": 13270,
+    "flight_width": 1160,
+    "gap": 80,
+    "rise": 3200,
+    "riser_count": 20,
+    "riser_height": 160.0,
+    "tread_depth": 280,
+    "flight_clear_width": 1110,
+    "landing_depth": 1150,
+    "slope_degrees": 29.74,
+    "upper_hole": [
+      10750,
+      7380,
+      14420,
+      9860
+    ],
+    "evidence": "inferred",
+    "source": "用户最新确认从门廊上楼，取消厅堂直通楼梯的敞口；左右折返走向保留，踏步与平台尺寸为设计建议"
+  },
+  "proposals": [],
+  "daylight": {
+    "status": "concept_not_simulated",
+    "north_gap_mm": [
+      200,
+      300
+    ],
+    "east_gap_mm": 3000,
+    "south_neighbor_floors": 1,
+    "issues": [
+      "北排中间卧室仅北侧小高窗，邻墙高度未知，直接采光尚未解决；借厅光不能替代直接采光",
+      "二层北侧开放餐厨同样需要复核北窗效果；二层天窗不能直接解决一层暗卧",
+      "窗尺寸为建议，未扣窗框评估有效采光面积，展示照明不代表真实日照"
+    ],
+    "confirmed_context": {
+      "province": "河北",
+      "city": "邯郸",
+      "drawing_up": "north",
+      "north": "邻居院墙，间隔约200至300毫米，不开大窗；院墙高度待核",
+      "north_gap_mm": [
+        200,
+        300
+      ],
+      "west": "临街，仅设计高小窗",
+      "east": "整条东侧约3米空地，再往东为邻居",
+      "east_gap_mm": 3000,
+      "south": "邻居一层主房后墙，距院界约200至300毫米",
+      "south_gap_mm": [
+        200,
+        300
+      ],
+      "south_neighbor_floors": 1
+    }
+  }
+}

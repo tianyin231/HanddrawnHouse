@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>尺寸校核与现场复测 · 手绘住宅</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/HanddrawnHouse/viewer/survey.css">
+</head>
+<body>
+  <header class="site-header"><a href="/HanddrawnHouse/" class="brand">手绘住宅<span>两层农村住宅</span></a><a href="/HanddrawnHouse/" class="back-link">← 返回三维查看</a></header>
+  <main>
+    <section class="intro">
+      <div><p class="eyebrow">01 / 尺寸与依据</p><h1>尺寸校核与现场复测</h1><p>同一套尺寸数据，分清图纸、暂定值和现场记录。所有记录均需人工复核，不会自动改动户型或模型。</p></div>
+      <div class="status-card" role="status"><span>参数与平面数据</span><strong id="audit-status">正在校核…</strong><small>不包含 Blender / GLB 实体、结构或日照验收</small></div>
+    </section>
+    <p id="load-error" class="alert" role="alert" hidden></p>
+    <div id="content" hidden>
+      <section class="review-layout" aria-label="楼层尺寸查看">
+        <div class="plan-card">
+          <div class="section-heading"><h2>当前平面</h2><div class="floor-switch" role="group" aria-label="楼层"><button type="button" data-floor="1" aria-pressed="true">一层</button><button type="button" data-floor="2" aria-pressed="false">二层</button></div></div>
+          <div id="plan"></div>
+          <p class="plan-key"><span>蓝线：建议窗洞</span><span>棕线：门洞</span><span>图纸北向朝上</span></p>
+          <p class="small">示意图由现有平面 JSON 绘制。只标含墙外轮廓；不表示实测比例误差、施工节点或门扇开启方向。</p>
+        </div>
+        <div class="detail-column">
+          <section class="detail-card">
+            <label for="room-select" class="eyebrow">选择房间核对</label>
+            <select id="room-select"></select>
+            <h2 id="room-title"></h2>
+            <dl class="dimension-values"><div><dt>含墙分配尺寸</dt><dd id="nominal"></dd></div><div><dt>按当前墙厚扣除后的估算</dt><dd id="clear"></dd></div><div class="unmeasured"><dt>完成面实测净尺寸</dt><dd>尚未提供</dd></div></dl>
+            <p class="small">估算是矩形范围，不是可用净面积。柱、饰面和局部障碍尚未扣除；院子与楼梯等复合空间也不能直接用长 × 宽作为净面积。</p>
+          </section>
+          <section class="detail-card muted-card"><h2>本轮检查范围</h2><p id="counts"></p><p>自动核对边界、墙厚与标高、房间缓存尺寸、门窗宿主与越界、楼梯参数，以及已确认的套卫、门廊上楼和院子挑空约束。</p><p class="small">数据一致 ≠ 实测准确。承重、排水、护栏安全、楼梯净空、日照和二进制模型实体均需另外验证。</p></section>
+          <section class="issues-card" aria-labelledby="issue-title"><h2 id="issue-title">数据检查结果</h2><div id="issues"></div></section>
+        </div>
+      </section>
+      <section class="ledger-section">
+        <div class="section-heading"><div><p class="eyebrow">现场带走 / 记录带回</p><h2>复测台账 <span id="record-count" class="count"></span></h2></div><div class="actions"><button type="button" id="export-csv">导出复测清单 CSV</button><button type="button" id="print">打印</button></div></div>
+        <p class="small">值均按下列单位填写，不自动换算。口径不同不计算差值；模型参数变动后，旧记录会提示复核。日期、测量人和测点／照片依据是必填项。</p>
+        <div class="ledger-toolbar"><label>分类 <select id="group-filter"><option value="">全部分类</option></select></label><div class="actions"><button type="button" id="export-records">导出现场记录 JSON</button><label class="file-button">导入记录<input id="import-records" type="file" accept=".json,application/json"></label></div></div>
+        <p id="storage-message" class="notice" role="status">记录仅保存在此浏览器。跨电脑、手机使用时，请导出 JSON 后在目标设备导入；清理浏览器数据会丢失本地记录。</p>
+        <div class="table-scroll" tabindex="0" aria-label="可横向滚动的复测台账"><table><thead><tr><th scope="col">测量项</th><th scope="col">模型当前值</th><th scope="col">依据与口径</th><th scope="col">现场记录</th><th scope="col">操作</th></tr></thead><tbody id="ledger"></tbody></table></div>
+      </section>
+      <section class="closing"><div><p class="eyebrow">继续深化前</p><h2>仍需补齐的现场与设计信息</h2><ul id="missing-decisions"></ul></div><button type="button" id="export-audit">导出数据校核报告</button></section>
+    </div>
+  </main>
+  <footer>当前仍为 needs_review 概念模型。现场记录不构成结构、规范或施工验收；本阶段不计算预算。</footer>
+  <dialog id="record-dialog" aria-labelledby="record-title">
+    <form id="record-form">
+      <div class="section-heading"><h2 id="record-title">现场记录</h2><button type="button" id="close-record" aria-label="关闭现场记录">关闭</button></div>
+      <p id="record-method" class="small"></p>
+      <label><span id="value-label">实测值</span><input id="measured-value" name="value" type="number" step="any" required></label>
+      <label>量取口径<select id="measured-basis" required></select></label>
+      <div class="form-pair"><label>测量日期<input id="measured-date" type="date" required></label><label>测量人<input id="measured-by" type="text" maxlength="500" required autocomplete="name"></label></div>
+      <label>测点／照片／原始记录依据<input id="measured-reference" type="text" maxlength="500" required placeholder="例如：南侧外缘 A—B，照片 IMG_0123"></label>
+      <label>备注<textarea id="measured-note" maxlength="2000" rows="3" placeholder="例如：未完成抹灰；不同位置存在差异"></textarea></label>
+      <p id="form-error" class="alert" role="alert" hidden></p>
+      <p class="small">仅保存为现场记录。不会把输入自动当作核准值，也不会修改 house_parameters.json。</p>
+      <div class="dialog-actions"><button type="button" id="remove-record" hidden>删除此项记录</button><button type="submit" class="primary">保存现场记录</button></div>
+    </form>
+  </dialog>
+  <script type="module" src="/HanddrawnHouse/viewer/survey.js"></script>
+</body>
+</html>

@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>手绘住宅 · 三维查看</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/HanddrawnHouse/viewer/styles.css">
+  <script type="importmap">
+    {"imports":{"three":"/HanddrawnHouse/vendor/three/build/three.module.js","three/addons/":"/HanddrawnHouse/vendor/three/examples/jsm/"}}
+  </script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/HanddrawnHouse/" aria-label="手绘住宅首页">
+      <svg viewBox="0 0 32 32" width="32" height="32" aria-hidden="true"><path d="M3 29V3h26v26H3Zm0-9h13V3m0 17h13M9 20v9m15-9v9M16 11h13" fill="none" stroke="currentColor" stroke-width="2.2"/></svg>
+      <span>手绘小院<small>有树荫，也有生活</small></span>
+    </a>
+    <div class="top-actions">
+      <span class="draft">约14.7米 · 墙厚待定</span>
+      <button id="compare" class="quiet-button">图纸对照</button>
+      <a href="/HanddrawnHouse/output/house.glb" download="house.glb" class="primary-link">下载模型 <span>GLB</span></a>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <aside class="sidebar" aria-label="模型查看选项">
+      <section class="control-section garden-section">
+        <h2>小院方案</h2>
+        <p>邯郸小院，灰瓦浅墙，树下有座。</p>
+        <div class="mood-buttons" role="group" aria-label="庭院氛围">
+          <button data-mood="day" aria-pressed="true">晴日</button>
+          <button data-mood="evening" aria-pressed="false">傍晚亮灯</button>
+          <button data-mood="night" aria-pressed="false">夜间通行</button>
+        </div>
+        <details class="solar-assumptions"><summary>庭院与通行灯光</summary>
+          <label class="check-row"><input id="outdoor-garden" type="checkbox" checked>庭院氛围灯</label>
+          <label class="check-row"><input id="outdoor-porch" type="checkbox" checked>门廊与楼梯口</label>
+          <label class="check-row"><input id="outdoor-path" type="checkbox" checked>院门、台阶与两跑楼梯</label>
+          <label class="field-row" for="outdoor-dim">观看亮度 <output id="outdoor-dim-value">100%</output></label>
+          <input id="outdoor-dim" type="range" min="0" max="100" step="10" value="100" aria-label="公共照明观看亮度">
+          <p id="outdoor-light-note" role="status"></p>
+          <div class="mood-buttons"><button data-circulation-view="entry">看台阶夜景</button><button data-circulation-view="stairs">看楼梯夜景</button></div>
+          <p>栏杆灯向踏面和平台照射；上下口保留手动控制，感应方式待选。灯具防护、固定、电路与实际照度仍需按产品和现场复核。</p>
+        </details>
+        <button data-view="courtyard" class="outline-button" aria-pressed="false">走进小院</button>
+        <button id="gate-toggle" class="outline-button" aria-pressed="true">关闭院门</button>
+        <label class="check-row"><input id="garden-design" type="checkbox" checked>显示庭院布置</label>
+        <p id="garden-note" class="garden-note">对开院门、三级台阶与有柱门廊。院面向排水沟找坡，附属间保留 2 米通道。</p>
+        <details class="garden-assumptions"><summary>设计依据与暂定尺寸</summary><p>按已选的曲周瓦顶参考，借鉴浅墙与深色窗框。院子进屋暂定高差 45 厘米，三级各 15 厘米、踏面 33 厘米；平台与门廊衔接，现场未实测。西侧院门与街道的高差另待复核。</p><p>主屋檐沟暂按 2‰ 找坡，110 毫米雨水管接院内预留雨水口；院面暂按 0.8% 向明沟找坡，附属间屋面按 1.5% 找坡至东北角内落水管。暴雨排水量、溢流和地下接管未设计。门廊梁柱只表达支撑关系，截面与配筋待工程复核。门窗框扇、双层玻璃与把手为尺寸化示意，开启方向和型材选型待定。</p><p>外观参考：<a href="https://www.bilibili.com/video/BV1r862YgEBa/" target="_blank" rel="noreferrer">2025 年曲周两层住宅设计图</a>；排水构件关系参考<a href="https://marleypipesystems.co.za/installing-rainwater-systems/" target="_blank" rel="noreferrer">厂家安装示意</a>，不作为本地施工验收依据。晴日与傍晚用于比较氛围；日照对比另按日期与时间计算太阳方向，均不代表照度验收。</p></details>
+      </section>
+      <section class="control-section">
+        <h2>查看楼层</h2>
+        <div class="view-buttons" role="group" aria-label="楼层视图">
+          <button data-view="whole" aria-pressed="true">整栋</button>
+          <button data-view="exploded" aria-pressed="false">分层展开</button>
+          <button data-view="floor1" aria-pressed="false">一层</button>
+          <button data-view="floor2" aria-pressed="false">二层</button>
+        </div>
+        <label class="check-row"><input id="cutaway" type="checkbox">剖切查看室内</label>
+        <p class="control-hint">隐藏 1.2 米以上的墙体，方便看布局。</p>
+        <label class="check-row"><input id="labels" type="checkbox" checked>显示房间名称</label>
+        <label class="room-view-label" for="render-quality">浏览画质</label>
+        <select id="render-quality"><option value="auto">自动 · 漫游优先流畅</option><option value="clear">清晰 · 更多细节</option><option value="smooth">流畅 · 降低渲染负担</option></select>
+        <p id="quality-note" class="control-hint"></p>
+        <button id="roof-concept" class="outline-button" aria-pressed="false" disabled>查看屋顶概念</button>
+        <p id="roof-note" class="control-hint">正在核对模型中的概念屋顶…</p>
+        <a href="/HanddrawnHouse/viewer/design-review.html?panel=building" class="review-link">查看屋面、卫浴与窗台候选节点 →</a>
+      </section>
+
+      <section class="control-section interior-section">
+        <h2>室内方案</h2>
+        <div class="interior-styles" role="group" aria-label="室内风格">
+          <button data-interior-style="a" aria-label="A 温润木色" aria-pressed="true"><span class="material-swatches" aria-hidden="true"><i style="background:#c6c4bd"></i><i style="background:#a98a66"></i><i style="background:#d8d1c2"></i></span>A · 温润木色</button>
+          <button data-interior-style="b" aria-label="B 清爽灰白" aria-pressed="false"><span class="material-swatches" aria-hidden="true"><i style="background:#e1d7c7"></i><i style="background:#785c47"></i><i style="background:#a9bbc1"></i></span>B · 清爽灰白</button>
+        </div>
+        <p id="interior-description" class="solar-note"></p>
+        <div class="mood-buttons"><button data-interior-room="1:hall">看一层厅堂</button><button data-interior-room="2:master-bedroom">看二层主卧</button></div>
+        <label class="room-view-label" for="interior-room-select">从房间内看</label>
+        <select id="interior-room-select"><option value="">选择厨房、卫浴或卧室</option></select>
+        <label class="check-row"><input id="interior-preview" type="checkbox" checked>显示室内布置</label>
+        <label class="check-row"><input id="interior-use-zones" type="checkbox">查看通道、使用与设备检修空间</label>
+        <p id="interior-note" class="solar-note">正在核对下载模型中的室内方案…</p>
+        <details class="lighting-panel"><summary>室内灯光与夜间场景</summary>
+          <label class="room-view-label" for="lighting-scene">照明场景</label>
+          <select id="lighting-scene"><option value="day">白天 · 自然光</option><option value="daily">夜间 · 日常</option><option value="rest">夜间 · 休息</option><option value="task">夜间 · 阅读 / 家务</option></select>
+          <label class="check-row"><input id="lighting-ceiling" type="checkbox" checked>顶灯</label>
+          <label class="check-row"><input id="lighting-local" type="checkbox" checked>局部灯（台面 / 阅读 / 床头 / 镜前）</label>
+          <label class="field-row" for="lighting-dim">观看亮度 <output id="lighting-dim-value">100%</output></label>
+          <input id="lighting-dim" type="range" min="0" max="100" step="10" value="100" aria-label="观看亮度">
+          <p id="lighting-room-note" class="solar-note" role="status"></p>
+          <p class="solar-note">日光与室内灯分开控制，敞口相连的厅餐厨一起亮灯。数值用于观看比较；窗光与反射为实时近似，灯具配光与实际照度尚未复核。</p>
+        </details>
+        <a id="design-review-link" href="/HanddrawnHouse/viewer/design-review.html" class="outline-button">装修尺寸图与复核清单 ↗</a>
+        <label class="room-view-label" for="motion-select">门与柜体开合</label>
+        <select id="motion-select"><option value="">选择构件，或点模型中的门扇</option></select>
+        <button id="motion-toggle" class="outline-button" disabled>打开构件</button>
+        <p id="motion-note" class="solar-note" aria-live="polite">房门、柜门、抽屉与冰箱门可开合；遇到墙体或家具会停止。</p>
+        <button id="walk-start" class="outline-button" disabled>第一人称探索</button>
+        <p class="solar-note">从当前房间或院子出发。鼠标环顾，WASD / 方向键移动，Shift 快走，Q / E 转向，空格开关面前的门，Esc 返回原视图。触屏拖动环看，按住画面内方向键行走。</p>
+        <details class="solar-assumptions"><summary>厨卫、空调与排风候选</summary>
+          <label class="room-view-label" for="service-select">查看设备与候选接点</label>
+          <select id="service-select"><option value="">选择设备</option></select>
+          <p id="service-note" class="solar-note">标记设备旁的候选位置。给水入口、污水出口、配电箱和热水来源未定，主管路线尚未设计。</p>
+          <p class="solar-note">10 处空调仅预留候选机位，是否安装、匹数和采暖方式待定；4 处卫浴排风独立考虑。两层餐厨排烟、外机、室外出口及穿墙孔尚未确定。</p>
+          <a href="/HanddrawnHouse/viewer/design-review.html?panel=equipment">查看灯具、设备图与连接关系 ↗</a>
+        </details>
+      </section>
+
+      <section class="control-section solar-section">
+        <h2>日照对比</h2>
+        <label class="check-row"><input id="solar-enabled" type="checkbox">按日期与时间看阳光</label>
+        <p class="solar-note">邯郸城市坐标，图纸上方暂按真北。灰色体块是邻房高度假设。</p>
+        <div id="solar-controls" hidden>
+          <label class="field-row">日期<input id="solar-date" type="date" value="2026-12-22" min="2020-01-01" max="2099-12-31" required></label>
+          <div class="mood-buttons"><button data-season="12-22">冬季</button><button data-season="06-21">夏季</button></div>
+          <label class="field-row" for="solar-hour">北京时间 <output id="solar-time">12:00</output></label>
+          <input id="solar-hour" type="range" min="0" max="1435" step="5" value="720" aria-label="北京时间">
+          <p id="solar-position" class="solar-note" aria-live="polite"></p>
+          <label class="check-row"><input id="solar-neighbors" type="checkbox" checked>加入邻房遮挡</label>
+          <details class="solar-assumptions"><summary>调整未实测条件</summary>
+            <label class="field-row">南侧一层邻房（米）<input id="neighbor-south" type="number" min="2" max="12" step="0.1" value="3.6" required></label>
+            <label class="field-row">北侧院墙（米）<input id="neighbor-north" type="number" min="1" max="6" step="0.1" value="2.4" required></label>
+            <label class="field-row">东侧邻房（米）<input id="neighbor-east" type="number" min="2" max="20" step="0.1" value="6.4" required></label>
+            <p>南北间隔暂取 0.25 米，东侧间隔 3 米。邻房南北/东西深度以 6 米体块表示；高度从暂定院坪量起，邻地高差与屋顶形状待实测。</p>
+            <label class="field-row">北纬<input id="solar-latitude" type="number" min="-89" max="89" step="0.001" required></label>
+            <label class="field-row">东经<input id="solar-longitude" type="number" min="-180" max="180" step="0.001" required></label>
+            <label class="field-row">图纸北向偏角（°）<input id="solar-north" type="number" min="-180" max="180" step="1" required></label>
+            <p>偏角顺时针为正。例如图纸上方朝东北，填 45°。窗向名称仍按图纸上北标记，计算使用实际偏角。</p>
+          </details>
+          <label class="room-view-label" for="solar-window-group">查看窗组</label>
+          <select id="solar-window-group"><option value="focus">重点窗 · 南向与北排</option><option value="1">一层全部窗</option><option value="2">二层全部窗</option></select>
+          <div class="solar-results"><p>当前时刻 · 窗外见光样点 / 9</p><div id="solar-samples" aria-live="polite"></div></div>
+          <div class="solar-results"><h3>全天直射时段 · 方案估算</h3>
+            <p class="solar-note">每 10 分钟采样一次，计算全部窗。时间带表示窗中心点见光，点击可查看对应时刻；展开每窗可看遮挡来源与诊断对比。没有直射不等于没有漫射光。</p>
+            <button id="solar-daily-run" class="outline-button">计算全天直射时段</button>
+            <p id="solar-daily-status" class="solar-note" role="status" data-state="idle">按上方日期、北向、邻房和当前模型计算。</p>
+            <div id="solar-daily-results"></div>
+            <button id="solar-daily-export" class="outline-button" disabled>导出本次估算 JSON</button>
+          </div>
+          <details class="solar-assumptions"><summary>计算口径与下一步实测</summary><p>采用 <a href="https://gml.noaa.gov/grad/solcalc/solareqns.PDF" target="_blank" rel="noreferrer">NOAA 太阳位置近似算法</a>。每窗 3×3 样点位于墙外 30 mm，只计算实体遮挡；不计折射、气象、天空漫射、玻璃透射或室内反射。时段界线为 10 分钟中点采样的近似值，短时遮挡可能遗漏。</p><p>先测精确北向、邻房顶部同基准标高及遮挡轮廓，再更新模型重算。当前不是日照达标或室内照度结论。</p><a href="/HanddrawnHouse/viewer/survey.html?group=邻房与日照">记录邻房与北向实测 →</a><p><a href="https://ungegn.un.org/dashboard/cities/details?id=2067" target="_blank" rel="noreferrer">邯郸参考坐标来源</a></p></details>
+        </div>
+      </section>
+
+      <section class="control-section suite-section">
+        <h2>主卧独立卫浴</h2>
+        <p>两层已同步：入口门以下为主卧套间，上方过道向厅堂敞开。</p>
+        <button id="suite" class="outline-button" aria-pressed="false">查看套间与入口</button>
+        <div class="correction-key" hidden><span><i class="red-mark"></i>套间门</span><span><i class="yellow-mark"></i>敞开通道</span></div>
+      </section>
+
+      <section class="control-section daylight-section">
+        <h2>采光与邻界</h2>
+        <p>图纸北朝上。东侧约3米空地；西侧临街，采用高小窗；南侧邻居一层，前院上方保持挑空。</p>
+        <button id="daylight" class="outline-button" aria-pressed="false">查看建议窗洞</button>
+        <p class="daylight-issue">北侧院墙仅隔约0.2–0.3米，北排中间房采光仍待解决。</p>
+        <p id="screen-note">新增影壁已取消；保留附属间前挡墙并向院子中间移动。</p>
+      </section>
+
+      <section class="control-section room-section">
+        <h2><label for="room-select">查看房间</label></h2>
+        <select id="room-select"><option value="">点击模型中的房间</option></select>
+        <div id="room-detail" aria-live="polite">
+          <strong id="room-name">选择一个房间</strong>
+          <p id="room-size">可以查看暂定尺寸与相邻空间。</p>
+          <p id="room-connections"></p>
+          <p id="room-daylight"></p>
+          <p id="room-furnishing"></p>
+          <button id="kitchen-window" class="outline-button" hidden>从厨房看窗外遮挡</button>
+        </div>
+      </section>
+
+      <section class="model-note">
+        <p>前院上方挑空，二层不铺楼板。</p>
+        <details>
+          <summary>尺寸与模型说明</summary>
+          <p id="dimensions-note">正在读取参数…</p>
+          <p>屋顶及窗洞仍为待复核方案。整栋视图展示完整墙体及屋顶；楼层和剖切视图打开内部空间。日照对比使用暂定邻房体量，只判断太阳方向与几何遮挡。室内默认 A 已纳入下载模型，配色、家具规格及设备接法仍可调整；结构、灯具光度参数与排水能力待深化。</p>
+        </details>
+        <a href="/HanddrawnHouse/viewer/survey.html">尺寸校核与现场复测</a>
+        <a href="/HanddrawnHouse/output/house.blend" download="house.blend">下载 Blender 源文件</a>
+      </section>
+    </aside>
+
+    <section id="viewport" aria-label="可旋转的住宅三维模型">
+      <div class="viewport-bar">
+        <div><strong id="view-title">整栋住宅</strong><span id="view-subtitle">完整墙体 · 概念屋顶</span></div>
+        <div class="camera-buttons"><button id="walk-enter" disabled>第一人称探索</button><button id="top-view" aria-pressed="false">俯视</button><button id="reset-view">复位</button></div>
+      </div>
+      <div id="loading" role="status">正在打开住宅模型…</div>
+      <div id="room-labels"></div>
+      <div id="solar-badge" hidden></div>
+      <div id="solar-ray-note" hidden role="status"><span></span><button aria-label="清除遮挡路径">清除</button></div>
+      <div id="walk-pad" hidden>
+        <div class="walk-caption"><div class="walk-place"><small>第一人称探索</small><strong id="walk-location">院子</strong><span id="walk-status"></span></div><div class="walk-tools"><button id="walk-lighting" aria-label="切换光照">晴日 · L</button><button id="walk-exit">退出探索 <span>Esc</span></button></div></div>
+        <div class="walk-actions"><button id="walk-interact" disabled>开关面前构件</button><span id="walk-look-hint"></span><span id="walk-feedback" role="status"></span></div>
+        <div class="walk-direction" role="group" aria-label="行走方向">
+          <button data-walk-key="KeyW" aria-label="向前走">↑</button>
+          <button data-walk-key="KeyA" aria-label="向左走">←</button>
+          <button data-walk-key="KeyS" aria-label="向后走">↓</button>
+          <button data-walk-key="KeyD" aria-label="向右走">→</button>
+        </div>
+        <span class="walk-crosshair" aria-hidden="true">+</span>
+        <span id="walk-target" hidden></span>
+      </div>
+      <div class="viewport-footer"><span>拖动旋转 · 滚轮缩放 · 右键平移</span><span id="scale-note">单位：米</span></div>
+    </section>
+  </main>
+
+  <dialog id="drawings">
+    <div class="dialog-header"><h2>图纸对照</h2><div><select id="drawing-floor" aria-label="对照楼层"><option value="1">一层</option><option value="2">二层</option></select><button id="close-drawings" aria-label="关闭图纸对照">关闭</button></div></div>
+    <div class="drawing-grid"><figure><figcaption>当前平面图</figcaption><img id="plan-image" alt="当前楼层平面图"></figure><figure><figcaption>手绘参考（已做透视校正）</figcaption><img id="reference-image" alt="当前楼层手绘参考"></figure></div>
+  </dialog>
+  <dialog id="kitchen-detail" class="kitchen-detail">
+    <div class="dialog-header"><h2>厨房南窗 · 室内视角</h2><button id="close-kitchen-detail" aria-label="关闭厨房窗视图">关闭</button></div>
+    <figure>
+      <img src="/HanddrawnHouse/output/kitchen-window-inside.png" alt="从厨房室内观察南窗，窗外梯段、平台、栏杆及上层楼板按当前尺寸保留">
+      <figcaption>建议推拉窗 2.4 × 1.4 米，窗台高 1.2 米。室内朝南看，画面左侧为东。<br>窗外梯段、平台和栏杆仍有遮挡，保留东窗。已补两轨框扇、玻璃及把手，型材和五金选型待定；此图不是日照或照度模拟。</figcaption>
+    </figure>
+  </dialog>
+  <script type="module" src="/HanddrawnHouse/viewer/app.js"></script>
+</body>
+</html>

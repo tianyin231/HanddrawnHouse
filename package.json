@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "start": "node scripts/serve.mjs",
+    "build:site": "node scripts/build-site.mjs",
+    "deploy:site": "node scripts/deploy-site.mjs",
     "check:dimensions": "node scripts/audit-dimensions.mjs",
     "test": "node --test"
   },

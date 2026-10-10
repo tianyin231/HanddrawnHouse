@@ -1,4 +1,5 @@
 // 庭院和附属间的方案标高共用这一处计算；室内 ±0 与三级台阶标高不变。
+export const ANNEX_EDGE={width:.10,baseAboveWall:.12,height:.27,capThickness:.025};
 export function yardElevationAt(p, y) {
   const e=p.entrance_proposal,q=p.site_detail_proposal;
   const firstStep=(p.courtyard_depth-e.landing_outside_mm-(e.riser_count-1)*e.tread_mm)/1000;
@@ -28,5 +29,7 @@ export function siteLayout(p, plan) {
 }
 
 export function annexRoofHeightAt(annex,x,y) {
-  return annex.roofLow+(Math.abs(x-annex.outlet[0])+Math.abs(y-annex.outlet[1]))*annex.roofSlope;
+  // 网格在方形落水孔四边处分块；穿过孔轴线的窄条在对应方向保持同高。
+  // 与实际分块坡面一致；孔内没有屋面，调用方只在孔外查询。
+  return annex.roofLow+(Math.max(annex.openingRadius,Math.abs(x-annex.outlet[0]))+Math.max(annex.openingRadius,Math.abs(y-annex.outlet[1])))*annex.roofSlope;
 }

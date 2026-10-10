@@ -111,7 +111,7 @@ def add_daylight_proposals(plan, level):
     plan["daylight"]={"status":"concept_not_simulated","north_gap_mm":[200,300],
         "east_gap_mm":3000,"south_neighbor_floors":1,
         "issues":["北排中间卧室仅北侧小高窗，邻墙高度未知，直接采光尚未解决；借厅光不能替代直接采光",
-                  "二层北侧起居区同样需要复核北窗效果；二层天窗不能直接解决一层暗卧",
+                  "二层北侧开放餐厨同样需要复核北窗效果；二层天窗不能直接解决一层暗卧",
                   "窗尺寸为建议，未扣窗框评估有效采光面积，展示照明不代表真实日照"],
         "confirmed_context":P["site_context"]}
 
@@ -231,11 +231,13 @@ def make_plan(level):
         wall("north-small-east", [small_end,YN], [small_end,Y1])
         wall("north-middle-south", [XNW,YN], [XE,YN])
         wall("east-spine", [XE,YK], [XE,YN])
-        wall("dining-kitchen-divider", [XE,YD], [W,YD])
+        plan["removed_walls"].append({"id":"dining-kitchen-divider", "a":[XE,YD], "b":[W,YD],
+            "thickness":I, "evidence":"known", "source":P["notes"]["dining_correction"]})
         opening("north-small-door", "north-middle-south", 350, 800)
         opening("middle-bedroom-door", "north-middle-south", XE-XNW-1100, 950)
-        opening("dining-door", "east-spine", YD-YK+550, 1100)
-        opening("kitchen-door", "east-spine", 650, 950)
+        opening("dining-entry", "east-spine", YN-YK-P["dining_entry_north_return"]-P["dining_entry_width"],
+                P["dining_entry_width"], P["notes"]["dining_correction"])
+        plan["openings"][-1].update({"door_leaf":False, "operation":"open_passage"})
         room("north-small", "烧香间", XNW,YN,small_end,Y1,bath)
         room("bedroom-middle", "卧室2", small_end,YN,XE,Y1,bed)
         room("dining", "餐厅", XE,YD,W,YN,"#d8d5ba")
@@ -256,8 +258,10 @@ def make_plan(level):
         connect("dining", "bedroom-ne", "ne-bedroom-door")
         connect("hall", "north-small", "north-small-door")
         connect("hall", "bedroom-middle", "middle-bedroom-door")
-        connect("hall", "dining", "dining-door")
-        connect("hall", "kitchen", "kitchen-door")
+        connect("hall", "dining", "dining-entry")
+        connect("dining", "kitchen", segment=[[XE,YD],[W,YD]])
+        plan["evidence"].append({"id":"dining-correction", "status":"known",
+            "source":P["notes"]["dining_correction"], "reference_image":"references/dining-correction.png"})
         connect("courtyard", "porch", segment=[[XW,Y0],[XS,Y0]])
         connect("courtyard", "annex-south", "annex-south-door")
         connect("courtyard", "annex-north", "annex-north-door")
@@ -273,7 +277,9 @@ def make_plan(level):
         wall("east-small-west", [XE+1100,closet_y], [XE+1100,YN])
         opening("east-bedroom-door", "east-bedroom-north", 150, 900)
         opening("east-small-door", "east-small-west", 300, 750)
-        room("north-living", "起居厅", XNW,YN,XE,Y1,hall)
+        room("north-living", "开放餐厨", XNW,YN,XE,Y1,hall)
+        plan["spaces"][-1]["use"]="kitchen-dining"
+        plan["evidence"].append({"id":"upper-kitchen", "status":"inferred", "source":P["notes"]["upper_kitchen"]})
         room("bedroom-east", "卧室3", XE,YK,W,closet_y,bed)
         room("east-small", "右侧小间", XE+1100,closet_y,W,YN,bath)
         room("east-vestibule", "过厅", XE,closet_y,XE+1100,YN,circulation)
@@ -300,6 +306,10 @@ def make_plan(level):
             "question": "黄色处敞开、红色处设套间入口门，下方卫浴归主卧套间",
             "status": "confirmed", "review_region": [0,YM,XW,YN],
             "note": "用户确认两层均修改；门洞宽度和准确位置仍为推定。"})
+    if level==1:
+        plan["acceptance_checks"].append({"id":"dining-correction", "status":"confirmed",
+            "question":"红墙保留，入口移至北端黄色框；餐厨隔墙取消，原两门洞封实",
+            "review_region":[XE-I,YK,W,YN], "note":P["notes"]["dining_correction"]})
     return plan
 
 

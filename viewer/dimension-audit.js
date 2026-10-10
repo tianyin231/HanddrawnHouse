@@ -19,8 +19,8 @@ const fields = [
   ['north_room_depth','北排进深','分间','allocated','图纸含墙','核对北排共享墙及外墙的分摊口径'],
   ['north_small_room_width','北侧窄间开间','分间','allocated','图纸含墙','一层烧香间；用途确认不等于尺寸实测'],
   ['master_bedroom_depth','主卧进深','分间','allocated','图纸含墙','4.5 米为含墙分配尺寸'],
-  ['dining_depth','餐厅进深','分间','allocated','图纸含墙','一层餐厅，分清共享墙中心线'],
-  ['kitchen_depth','厨房进深','分间','allocated','图纸含墙','一层厨房，分清共享墙中心线'],
+  ['dining_depth','餐厅进深','分间','allocated','图纸含墙','餐厨已打通；保留原分区线作为尺寸参考，此处已无隔墙'],
+  ['kitchen_depth','厨房进深','分间','allocated','图纸含墙','餐厨已打通；保留原分区线作为尺寸参考，此处已无隔墙'],
   ['floor_to_floor','层高','标高与墙厚','floor','暂定','同一基准下的两层楼面标高差；同时记录饰面层'],
   ['wall_height','墙体建模高度','标高与墙厚','clear','暂定','当前从楼层基准面起算；不是完成面净高'],
   ['exterior_wall_thickness','外墙厚度','标高与墙厚','wall','暂定','记录墙体本体，内外饰面分别量取'],
@@ -57,7 +57,7 @@ export const MEASUREMENT_FIELDS = Object.freeze(fields.map(([id,label,group,basi
   Object.freeze({id,label,group,basis,status,method,unit})));
 export const MISSING_DECISIONS = Object.freeze([
   '精确位置、北向和邻房完整遮挡轮廓未齐，不能进行可信日照校核。',
-  '屋顶形式、排水去向、梁柱与结构做法需结合现场及当地设计意见确定。',
+  '当前四坡瓦顶为方案形体；瓦型、防水、排水去向、梁柱与结构做法仍需结合现场和产品复核。',
   '每樘门窗的墙端定位、净洞口、窗台和开扇方式需逐一复测；建议洞口不等于成品尺寸。',
   '墙地顶饰面厚度及楼梯、梁下净空缺失，不能将扣墙估算用于家具下单或施工。'
 ]);

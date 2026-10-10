@@ -1,5 +1,8 @@
 """按现有洞口补外立面构件；尺寸为方案表达，不代表选型或施工验收。"""
 import math
+import json
+import subprocess
+from pathlib import Path
 import bpy
 from mathutils import Vector
 from site_details import yard_height
@@ -33,6 +36,9 @@ def merge_material_parts(parts, prefix, root, metadata):
 
 def create_facade_details(plan, p, box, mesh, collection, material):
     level = plan["level"]
+    source = Path(__file__).resolve().parent / "export-window-details.mjs"
+    window_details = {item["id"]: item for item in json.loads(subprocess.run(
+        ["node",str(source),str(level)],check=True,capture_output=True,text=True,encoding="utf-8").stdout)}
     col = collection("architecture/facade-details")
     root = bpy.data.objects.new(f"FacadeDetails_{level}", None)
     col.objects.link(root)
@@ -103,12 +109,9 @@ def create_facade_details(plan, p, box, mesh, collection, material):
             for offset in (-.035, .035):
                 block("track", .025, width - .025, bottom + .02, bottom + .045, .009, offset, frame)
             # 南向窗台可向自家空间出挑；北、东、西侧压在已有外墙边界内。
-            outside = wall["thickness"] / 2000 + (.035 if outward.y < -.5 else 0)
-            inside = -.075
-            section = [(inside, bottom + .006), (outside, bottom - .015),
-                       (outside, bottom - .060), (outside - .014, bottom - .060),
-                       (outside - .014, bottom - .050), (outside - .021, bottom - .050),
-                       (outside - .021, bottom - .060), (inside, bottom - .045)]
+            # 仅南向出挑段有外露滴水槽；贴界窗台不保留埋在墙内的伪滴水槽。
+            detail = window_details[opening["id"]]
+            section = detail["section"]
             vertices = [tuple(origin + along * x + outward * y + Vector((0, 0, z)))
                         for x in (0, width) for y, z in section]
             n = len(section)
@@ -120,7 +123,7 @@ def create_facade_details(plan, p, box, mesh, collection, material):
             merge_material_parts(pieces, f"facade/{opening['id']}", root, {
                 "opening_id": opening["id"], "detail_kind": "window",
                 "operation": operation, "model_status": "needs_review", "is_proxy": True,
-                "leaf_count": count, "wall_id": wall["id"]})
+                "leaf_count": count, "wall_id": wall["id"],"sill_detail":json.dumps(detail,ensure_ascii=False)})
         # 门扇统一由共享 DoorDesign 生成，保留门廊灯和原有洞口门框。
         if opening["id"] == "main-hall-door":
             pieces = []

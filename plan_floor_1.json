@@ -43,6 +43,18 @@
         16000
       ],
       "note": "用户确认两层均修改；门洞宽度和准确位置仍为推定。"
+    },
+    {
+      "id": "dining-correction",
+      "status": "confirmed",
+      "question": "红墙保留，入口移至北端黄色框；餐厨隔墙取消，原两门洞封实",
+      "review_region": [
+        10520,
+        10500,
+        14700,
+        16000
+      ],
+      "note": "用户图示并确认：一层红色长墙保留，仅北端黄色框留餐厨入口，取消原两个门洞；去掉餐厨之间黄色隔墙。沙发和餐桌靠墙。新入口暂取1100毫米，北端墙垛90毫米，尺寸未实测。"
     }
   ],
   "calibration": {
@@ -391,21 +403,6 @@
       "height": 3000
     },
     {
-      "id": "dining-kitchen-divider",
-      "a": [
-        10700,
-        13000
-      ],
-      "b": [
-        14700,
-        13000
-      ],
-      "thickness": 180,
-      "class": "interior",
-      "evidence": "inferred",
-      "height": 3000
-    },
-    {
       "id": "yard-west",
       "a": [
         120.0,
@@ -593,24 +590,16 @@
       "source": "草图门弧/通道位置；门宽高推定"
     },
     {
-      "id": "dining-door",
+      "id": "dining-entry",
       "kind": "door",
       "wall_id": "east-spine",
-      "offset": 3050,
+      "offset": 4310,
       "width": 1100,
       "head": 2200,
       "evidence": "inferred",
-      "source": "草图门弧/通道位置；门宽高推定"
-    },
-    {
-      "id": "kitchen-door",
-      "kind": "door",
-      "wall_id": "east-spine",
-      "offset": 650,
-      "width": 950,
-      "head": 2200,
-      "evidence": "inferred",
-      "source": "草图门弧/通道位置；门宽高推定"
+      "source": "用户图示并确认：一层红色长墙保留，仅北端黄色框留餐厨入口，取消原两个门洞；去掉餐厨之间黄色隔墙。沙发和餐桌靠墙。新入口暂取1100毫米，北端墙垛90毫米，尺寸未实测。",
+      "door_leaf": false,
+      "operation": "open_passage"
     },
     {
       "id": "annex-south-door",
@@ -864,7 +853,22 @@
   ],
   "beams": [],
   "columns": [],
-  "removed_walls": [],
+  "removed_walls": [
+    {
+      "id": "dining-kitchen-divider",
+      "a": [
+        10700,
+        13000
+      ],
+      "b": [
+        14700,
+        13000
+      ],
+      "thickness": 180,
+      "evidence": "known",
+      "source": "用户图示并确认：一层红色长墙保留，仅北端黄色框留餐厨入口，取消原两个门洞；去掉餐厨之间黄色隔墙。沙发和餐桌靠墙。新入口暂取1100毫米，北端墙垛90毫米，尺寸未实测。"
+    }
+  ],
   "spaces": [
     {
       "id": "bedroom-nw",
@@ -1376,13 +1380,13 @@
       ],
       "clear_bounds_mm": [
         10790.0,
-        13090.0,
+        13000,
         14460,
         15910.0
       ],
       "clear_size_mm": [
         3670,
-        2820
+        2910
       ],
       "clear_size_note": "按当前墙厚估算的可用矩形范围；未扣柱和装饰层，非竣工净尺寸"
     },
@@ -1418,11 +1422,11 @@
         10790.0,
         10590.0,
         14460,
-        12910.0
+        13000
       ],
       "clear_size_mm": [
         3670,
-        2320
+        2410
       ],
       "clear_size_note": "按当前墙厚估算的可用矩形范围；未扣柱和装饰层，非竣工净尺寸"
     },
@@ -1693,17 +1697,26 @@
       ],
       "kind": "door",
       "evidence": "inferred",
-      "opening_id": "dining-door"
+      "opening_id": "dining-entry"
     },
     {
-      "id": "hall-to-kitchen",
+      "id": "dining-to-kitchen",
       "spaces": [
-        "hall",
+        "dining",
         "kitchen"
       ],
-      "kind": "door",
+      "kind": "open",
       "evidence": "inferred",
-      "opening_id": "kitchen-door"
+      "segment": [
+        [
+          10700,
+          13000
+        ],
+        [
+          14700,
+          13000
+        ]
+      ]
     },
     {
       "id": "courtyard-to-porch",
@@ -1807,6 +1820,12 @@
       "reference_image": "references/ensuite-correction.png"
     },
     {
+      "id": "dining-correction",
+      "status": "known",
+      "source": "用户图示并确认：一层红色长墙保留，仅北端黄色框留餐厨入口，取消原两个门洞；去掉餐厨之间黄色隔墙。沙发和餐桌靠墙。新入口暂取1100毫米，北端墙垛90毫米，尺寸未实测。",
+      "reference_image": "references/dining-correction.png"
+    },
+    {
       "id": "courtyard-correction",
       "status": "known",
       "source": "用户最新红圈：取消新增门内影壁、取消楼梯朝院子的墙及窗；绿色原有挡墙向院中移，确认附属间门前净通道2米。二层临空处保留栏杆。",
@@ -1884,7 +1903,7 @@
     "south_neighbor_floors": 1,
     "issues": [
       "北排中间卧室仅北侧小高窗，邻墙高度未知，直接采光尚未解决；借厅光不能替代直接采光",
-      "二层北侧起居区同样需要复核北窗效果；二层天窗不能直接解决一层暗卧",
+      "二层北侧开放餐厨同样需要复核北窗效果；二层天窗不能直接解决一层暗卧",
       "窗尺寸为建议，未扣窗框评估有效采光面积，展示照明不代表真实日照"
     ],
     "confirmed_context": {

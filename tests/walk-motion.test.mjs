@@ -4,6 +4,7 @@ import {readFileSync} from 'node:fs';
 import * as THREE from 'three';
 import {createWalkWorld,overlap} from '../viewer/walk-world.js';
 import {createInteriorDesign} from '../viewer/interior-design.js';
+import {interiorLayout} from '../viewer/interior-layout.js';
 import {createDoorDesign} from '../viewer/door-design.js';
 import {collectMotions,poseMotion,motionObstacle} from '../viewer/motion-controls.js';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
@@ -36,6 +37,30 @@ test('墙体、关闭的门、床和挑空边缘不能穿越',()=>{
   const rail=world.move({x:12,y:8,z:world.stairAt(12,8)},0,1.3,dynamic());assert.ok(rail.y<8.58);
 });
 
+test('较大帧间隔的快走仍按小步碰撞，新增收纳柜不能穿过',()=>{
+  for(const dt of [1/60,.10,.12]) {
+    let position={x:6.4,y:9.7,z:.024};
+    for(let t=0;t<1;t+=dt)position=world.move(position,0,3.6*dt,dynamic());
+    assert.ok(position.y<10.4,'快走不能越过关闭的入户门');
+  }
+  for(const plan of plans)for(const item of interiorLayout(p,plan).items.filter(i=>i.type==='storage-cabinet')){
+    const [x,y,x1,y1]=item.bounds,west=item.facing==='west';
+    const position=world.move({x:west?x-.6:x1+.6,y:(y+y1)/2,z:(plan.level-1)*3.2+.024},west?1:-1,0,dynamic());
+    assert.ok(west?position.x<x:position.x>x1,item.id);
+  }
+});
+
+test('一层餐厨从北端入口进入，原两门洞封实，餐厨之间可通行',()=>{
+  route([[11.3,15.35],[12.3,14.6],[12.3,12.3]],{x:10.2,y:15.35,z:.024});
+  for(const y of [11.6,14.15]) {
+    const blocked=world.move({x:10.35,y,z:.024},.9,0,dynamic());
+    assert.ok(blocked.x<10.7,`原门洞 ${y} 仍可穿过`);
+  }
+  const dining=plans[0].spaces.find(s=>s.id==='dining');
+  const table=interiorLayout(p,plans[0]).items.find(i=>i.id==='dining-table');
+  assert.ok(Math.abs(dining.clear_bounds_mm[2]/1000-table.bounds[2]-.025)<1e-6);
+});
+
 test('两层活动构件具有唯一编号，房门完整回转不碰固定家具',()=>{
   assert.equal(new Set(motions.map(m=>m.data.id)).size,motions.length);
   for(const m of motions.filter(m=>m.data.opening_id)) {
@@ -49,6 +74,19 @@ test('抽屉向柜外移动，关闭后精确复位；柜门开启露出柜内',
   poseMotion(drawer,1);assert.ok(Math.abs(drawer.node.position.z-before.z-.32)<1e-6);poseMotion(drawer,0);assert.ok(drawer.node.position.equals(before));
   const door=motions.find(m=>m.data.owner==='master-wardrobe/cabinet-0');
   poseMotion(door,1);const polygon=motionObstacle(door).polygon;assert.ok(Math.min(...polygon.map(p=>p[0]))<2.9);poseMotion(door,0);
+});
+
+test('静止门柜复用碰撞体，开合和楼层位移后更新缓存',()=>{
+  const m=motions.find(m=>m.data.owner==='master-nightstand'),closed=motionObstacle(m);
+  assert.equal(motionObstacle(m),closed);
+  poseMotion(m,.5);const opened=motionObstacle(m);assert.notEqual(opened,closed);
+  assert.notDeepEqual(opened.polygon,closed.polygon);
+  const parent=m.node.parent,y=parent.position.y;
+  parent.position.y+=5.4;const raised=motionObstacle(m);
+  assert.ok(Math.abs(raised.bottom-opened.bottom-5.4)<1e-8);
+  parent.position.y=y;poseMotion(m,0);
+  assert.deepEqual(motionObstacle(m).polygon,closed.polygon);
+  assert.equal(motionObstacle(m).bottom,closed.bottom);
 });
 
 test('柜门与抽屉逐个打开不碰相邻闭合门板和其他柜体',()=>{

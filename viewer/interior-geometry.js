@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
+import {SHOWER_OPENING_M} from './wet-area-details.js';
+import {kitchenFrame} from './kitchen-layout.js';
 
 export function interiorBuilder(group,materials) {
   const buckets=new Map();
@@ -51,12 +53,29 @@ export function interiorBuilder(group,materials) {
         mesh.castShadow=!['floor','rug','glass'].includes(name)&&type!=='floor';mesh.receiveShadow=true;
         (motions.find(o=>o.name===parent)||group).add(mesh);
       }
-      group.add(...motions);
+      if(motions.length)group.add(...motions);
     }
   };
 }
 
 export function furnish(item,g) {
+  if(item.type==='storage-cabinet'&&item.facing==='east'){
+    const sum=item.bounds[0]+item.bounds[2],mapped={...g,
+      box:(m,x,y,x1,y1,z,h,rounded)=>g.box(m,sum-x1,y,sum-x,y1,z,h,rounded),
+      cylinder:(m,x,y,z,h,r,top)=>g.cylinder(m,sum-x,y,z,h,r,top),
+      moving:(meta,pivot,draw)=>g.moving({...meta,amount:-meta.amount},[sum-pivot[0],pivot[1],pivot[2]],draw)
+    };
+    return furnish({...item,facing:'west'},mapped);
+  }
+  if(item.type==='kitchen'&&item.corner) {
+    const f=kitchenFrame(item),mapped={...g,
+      box:(m,x,y,x1,y1,z,h,rounded)=>g.box(m,...f.rect([x,y,x1,y1]),z,h,rounded),
+      cylinder:(m,x,y,z,h,r,top)=>g.cylinder(m,...f.point([x,y,z]),h,r,top),
+      pipe:(m,points,r)=>g.pipe(m,points.map(f.point),r),
+      moving:(meta,pivot,draw)=>g.moving({...meta,amount:meta.amount*(f.reflected?-1:1)},f.point(pivot),draw)
+    };
+    return furnish({...item,bounds:f.bounds,corner:null},mapped);
+  }
   const {box:b,cylinder:c,bowl,pipe}=g;
   const [x,y,x1,y1]=item.bounds,w=x1-x,d=y1-y,cx=(x+x1)/2,cy=(y+y1)/2;
   let cabinetIndex=0;
@@ -64,7 +83,7 @@ export function furnish(item,g) {
     const owner=`${item.id}/cabinet-${cabinetIndex++}`;
     const [a,q,a1,q1]=bounds,t=.018;
     b(material,a,q,a1,q1,z,t);
-    if(item.type!=='kitchen'&&item.type!=='vanity')b(material,a,q,a1,q1,z+h-t,t);
+    if(z>1||(item.type!=='kitchen'&&item.type!=='vanity'))b(material,a,q,a1,q1,z+h-t,t);
     if(front==='west') {
       b(material,a1-t,q,a1,q1,z,h);b(material,a,q,a1,q+t,z,h);b(material,a,q1-t,a1,q1,z,h);
     } else {
@@ -77,7 +96,7 @@ export function furnish(item,g) {
       const start=(front==='west'?q:a)+i*step+.004,end=start+step-.008;
       // 铰轴落在门板外侧面，避免厚门板回转时卡住相邻闭合门板。
       const pivot=front==='west'?[a-.018,start,0]:[start,front==='north'?q1+.018:q-.018,0];
-      g.moving({id:`${owner}/leaf-${i}`,owner,label:`${item.type==='wardrobe'?'衣柜':item.type==='vanity'?'浴室柜':z>1?'吊柜':'地柜'}第 ${i+1} 扇`,type:'hinge',amount:front==='south'?-Math.PI/2:Math.PI/2},pivot,()=>{
+      g.moving({id:`${owner}/leaf-${i}`,owner,label:`${item.type==='wardrobe'?'衣柜':item.type==='vanity'?'浴室柜':item.type==='storage-cabinet'?'收纳柜':z>1?'吊柜':'地柜'}第 ${i+1} 扇`,type:'hinge',amount:front==='south'?-Math.PI/2:Math.PI/2},pivot,()=>{
       if(front==='west') {
         b(doorMaterial,a-.018,start,a,end,z+.008,h-.016);
         b('metal',a-.042,end-.06,a-.021,end-.045,z+h-.15,.12);
@@ -96,6 +115,42 @@ export function furnish(item,g) {
     b('wood',a-.23,back,a+.23,back+.05,.47,.39,true);
   };
   switch(item.type) {
+    case 'storage-cabinet': {
+      const top=item.height,closed=item.closedHeight,upper=.08+closed;
+      b('metal',x+.04,y+.035,x1-.02,y1-.035,.026,.054);
+      cabinet(item.bounds,'west',.08,closed,'wood',.56,'white');
+      b('wood',x1-.018,y,x1,y1,upper,top-upper);
+      for(const q of [y,y1-.018])b('wood',x,q,x1,q+.018,upper,top-upper);
+      b('wood',x,y,x1,y1,top-.018,.018);
+      b('wood',x+.018,y+.018,x1-.018,y1-.018,.42,.018);
+      if(top>1.5){
+        for(const h of [1.27,1.66])b('wood',x,y+.018,x1,y1-.018,h,.018);
+        for(let i=0;i<3;i++)b(i===1?'accent':'stone',x+.04,y+.06+i*.055,x+.25,y+.103+i*.055,upper+.02,.25+i*.015);
+        c('ceramic',cx,cy,1.678,.19,.058,.038);
+        b('cloth',x+.04,y+.045,x1-.035,y1-.045,1.31,.20);
+        b('wood',x+.025,y+.04,x1-.025,y1-.04,1.51,.018);
+      }else{
+        c('wood',cx,cy,top,.012,.13);
+        for(const q of [cy-.065,cy+.065])c('ceramic',cx,q,top+.012,.075,.027);
+      }
+      break;
+    }
+    case 'wall-art': {
+      const z=item.bottom,h=item.height,gap=.16,panel=(d-gap)/2;
+      for(let i=0;i<2;i++){
+        const a=y+i*(panel+gap),end=a+panel;
+        b('wood',x,a,x1,end,z,h);
+        b('white',x-.001,a+.028,x+.006,end-.028,z+.028,h-.056);
+        // 平面几何画芯：留白、圆日与山形；无外部图片和额外贴图。
+        const disc=new THREE.CircleGeometry(.12,24);disc.rotateY(-Math.PI/2);
+        g.add(i?'wood':'accent',disc,x-.003,a+panel*.65,z+h*.70);
+        const shape=new THREE.BufferGeometry();
+        shape.setAttribute('position',new THREE.Float32BufferAttribute([
+          x-.004,z+.12,-(a+.09), x-.004,z+h*.61,-(a+panel*.44), x-.004,z+.12,-(end-.09)
+        ],3));shape.computeVertexNormals();g.add(i?'accent':'stone',shape);
+      }
+      break;
+    }
     case 'sofa':
       for(const a of [x+.11,x1-.15])for(const q of [y+.15,y1-.15])c('metal',a,q,.03,.15,.028);
       b('wood',x,y,x1,y1,.16,.16,true);b('cloth',x1-.21,y,x1,y1,.30,.64,true);
@@ -210,12 +265,10 @@ export function furnish(item,g) {
       b('steel',wall-.015,q-.1,wall+.04,q+.1,.97,.065,true);
       pipe('steel',[[wall+.025,q+.03,.97],[wall+.07,q+.20,.64],[wall+.10,q+.30,1.45]],.008);
       // 北端固定玻璃挡水，南端留约 0.85 米开放入口；不假设玻璃门能在狭窄房间内回转。
-      const start=y+.87;
+      const start=y+SHOWER_OPENING_M;
       b('glass',x1-.012,start,x1,y1,.026,1.99);
       for(const q0 of [start,y1-.012])b('metal',x1-.02,q0,x1+.005,q0+.012,.026,2.02);
       b('metal',x1-.02,start,x1+.005,y1,2.033,.015);
-      b('steel',x+.18,y1-.30,x+.30,y1-.18,.025,.005);
-      for(let a=x+.19;a<x+.30;a+=.018)b('metal',a,y1-.29,a+.005,y1-.19,.030,.001);
       break;
     }
     case 'reading-set':

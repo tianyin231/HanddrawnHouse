@@ -1,16 +1,16 @@
 {
   "interior_design": {
     "1": {
-      "style": "a_provisional",
-      "mesh_count": 228,
+      "style": "a_direction_confirmed_products_pending",
+      "mesh_count": 271,
       "beds": 4,
       "bathrooms": 2,
       "unconfirmed_room_uses_preserved": true,
       "glb_roundtrip_checked": true
     },
     "2": {
-      "style": "a_provisional",
-      "mesh_count": 196,
+      "style": "a_direction_confirmed_products_pending",
+      "mesh_count": 262,
       "beds": 4,
       "bathrooms": 2,
       "unconfirmed_room_uses_preserved": true,
@@ -20,7 +20,7 @@
   "status": "pass",
   "model_status": "needs_review",
   "blender_version": "5.2.1 LTS",
-  "native_mesh_count": 1245,
+  "native_mesh_count": 1370,
   "native_bounds_m": [
     [
       -2.8312206268310547e-07,
@@ -264,10 +264,10 @@
     "glb_roundtrip_checked": true
   },
   "note": "验证文件和几何生成一致性；总宽采用用户约数14.7米，墙厚和竖向暂定。未评估承重、日照达标及施工节点。",
-  "glb_bytes": 14158152,
-  "glb_node_count": 1350,
-  "glb_mesh_count": 1245,
-  "glb_roundtrip_mesh_count": 1245,
+  "glb_bytes": 15718632,
+  "glb_node_count": 1504,
+  "glb_mesh_count": 1370,
+  "glb_roundtrip_mesh_count": 1370,
   "glb_roundtrip_bounds_error_m": 0.0,
   "two_dimensional_checks": {
     "1": {

@@ -3,6 +3,10 @@ import {interiorLayout} from './interior-layout.js';
 import {interiorBuilder,furnish} from './interior-geometry.js';
 import {servicePoints} from './service-points.js';
 import {finishLayout,drawFinishes} from './interior-finishes.js';
+import {taskFixtures} from './lighting-layout.js';
+import {equipmentLayout} from './equipment-layout.js';
+import {drawEquipment} from './equipment-geometry.js';
+import {wetAreaDetails,subtractFloorOpening,drawWetDrains} from './wet-area-details.js';
 
 export const INTERIOR_STYLES={
   a:{label:'A · 温润木色',description:'一层暖灰瓷砖、木柜；二层浅木地板、米白织物。',floor:'#c6c4bd',upperFloor:'#c5a780',wood:'#a98a66',cloth:'#d8d1c2',upperCloth:'#e6dfd2',accent:'#8d9b87'},
@@ -32,28 +36,32 @@ export function applyInteriorStyle(group,level,styleId) {
     const key=obj.userData.interior_material;
     if(obj.isMesh && key) {
       const o=options[key];obj.material.color.set(o.color);
-      obj.material.roughness=o.roughness;obj.material.metalness=o.metalness;
+      obj.material.roughness=obj.material.userData.detailRoughness??o.roughness;obj.material.metalness=o.metalness;
     }
   });
   group.userData.interior_style=styleId;
 }
 
 export function createInteriorDesign(p,plan,styleId='a') {
-  const layout=interiorLayout(p,plan),finishes=finishLayout(p,plan,layout),group=new THREE.Group();
+  const layout=interiorLayout(p,plan),finishes=finishLayout(p,plan,layout),equipment=equipmentLayout(p,plan,layout),group=new THREE.Group();
+  const wetDetails=wetAreaDetails(layout,plan),drains=wetDetails.map(v=>v.drain);
   group.name=`InteriorDesign_${plan.level}`;
-  group.userData={interior_root:true,model_component:true,concept_only:true,model_status:'needs_review',interior_style:styleId,layout,service_points:servicePoints(layout),finish_proposal:finishes.dimensions};
+  group.userData={interior_root:true,model_component:true,concept_only:true,model_status:'needs_review',interior_style:styleId,layout,service_points:servicePoints(layout),equipment_plan:equipment,finish_proposal:finishes.dimensions,wet_area_details:wetDetails};
   const materials=Object.fromEntries(Object.entries(interiorMaterials(plan.level,styleId))
     .map(([name,options])=>[name,new THREE.MeshStandardMaterial({name:`interior/${plan.level}/${name}`,...options})]));
   const g=interiorBuilder(group,materials),b=g.box;
   for(const r of layout.rooms) {
-    const [x,y,x1,y1]=r.bounds,wet=r.id.startsWith('bathroom')||r.id==='kitchen';
+    const [x,y,x1,y1]=r.bounds,wet=r.id.startsWith('bathroom')||r.id==='kitchen'||r.use==='kitchen-dining';
     const plank=plan.level===2&&!wet,dx=plank?.18:wet?.6:.8,dy=plank?1.2:dx;
+    const drain=drains.find(v=>v.space===r.id);
     g.context(r.id,'floor');
     let i=0;
     for(let a=x;a<x1-.004;a+=dx,i++) {
       let j=0;
-      for(let q=y-(plank&&i%2?.6:0);q<y1-.004;q+=dy,j++)
-        b(wet?'tile':(i+j)%3?'floor':'floorAlt',a+.0015,Math.max(q,y)+.0015,Math.min(a+dx,x1)-.0015,Math.min(q+dy,y1)-.0015,.010,.014);
+      for(let q=y-(plank&&i%2?.6:0);q<y1-.004;q+=dy,j++) {
+        const tile=[a+.0015,Math.max(q,y)+.0015,Math.min(a+dx,x1)-.0015,Math.min(q+dy,y1)-.0015];
+        for(const part of drain?subtractFloorOpening(tile,drain.bounds):[tile])b(wet?'tile':(i+j)%3?'floor':'floorAlt',...part,.010,.014);
+      }
     }
     // 顶面按房间分配边界覆盖连接处；楼层/剖切视图可以单独隐藏，不改变室内高度。
     const xs=r.polygon.map(a=>a[0]),ys=r.polygon.map(a=>a[1]);
@@ -85,11 +93,23 @@ export function createInteriorDesign(p,plan,styleId='a') {
     else b('stone',Math.min(a[0],b1[0]),a[1]-width/2,Math.max(a[0],b1[0]),a[1]+width/2,.010,.014);
   }
   drawFinishes(finishes,g);
-  for(const item of layout.items){g.context(item.space);furnish(item,g);}
+  drawEquipment(equipment,g);
+  drawWetDrains(drains,g);
+  for(const item of layout.items){g.context(item.space,item.type==='wall-art'?'wall-decor':'furniture');furnish(item,g);}
   for(const l of layout.lights) {
     g.context(l.space,'ceiling');const [x,y,h]=l.position;
     g.cylinder('white',x,y,h,.065,l.space==='hall'?.35:.22);
     g.cylinder('lamp',x,y,h-.006,.008,l.space==='hall'?.32:.195);
+  }
+  for(const l of taskFixtures(layout)) {
+    g.context(l.space,'task-light');const [x,y,x1,y1]=l.bounds;
+    b('white',x,y,x1,y1,l.bottom,l.height,true);
+    b('lamp',x+.008,y+.006,x1-.008,y1-.006,l.bottom-.004,.004);
+    if(l.base) {
+      const [a,q,h]=l.base;
+      g.cylinder('metal',a,q,h,.02,.085);
+      g.pipe('metal',[[a,q,h+.02],[a,q,l.bottom-.03],[(x+x1)/2,q,l.bottom-.015]],.009);
+    }
   }
   const master=layout.rooms.find(r=>r.id==='master-bedroom'),[mx,my]=master.bounds;
   g.context(master.id);
@@ -105,7 +125,7 @@ export function createInteriorDesign(p,plan,styleId='a') {
   b('metal',mx+.36,my+.14,mx+3.16,my+.18,2.75,.025);
   g.context('hall','floor');
   const hall=layout.rooms.find(r=>r.id==='hall').bounds;
-  b('rug',hall[0]+1.86,hall[1]+.51,hall[0]+5.13,hall[1]+3.61,.026,.009,true);
+  b('rug',hall[2]-3.35,hall[1]+.51,hall[2]-.16,hall[1]+3.61,.026,.009,true);
   g.finish();group.updateMatrixWorld(true);return group;
 }
 

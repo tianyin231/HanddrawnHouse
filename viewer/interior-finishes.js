@@ -4,7 +4,7 @@ export const FINISH_PROPOSAL={skirtingHeight:.08,skirtingDepth:.012,casingWidth:
 export function finishLayout(p,plan,layout) {
   const pieces=[],faces=[];
   for(const room of layout.rooms) {
-    const [x,y,x1,y1]=room.bounds,wet=room.id.startsWith('bathroom'),kitchen=room.id==='kitchen';
+    const [x,y,x1,y1]=room.bounds,wet=room.id.startsWith('bathroom'),kitchen=room.id==='kitchen'||room.use==='kitchen-dining';
     for(const wall of plan.walls) {
       const horizontal=wall.a[1]===wall.b[1],axis=(horizontal?wall.a[1]:wall.a[0])/1000,t=wall.thickness/2000;
       let surface,sign;

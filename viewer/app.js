@@ -12,6 +12,12 @@ import {createWalkWorld,gateObstacles,touchesBody} from './walk-world.js';
 import {collectMotions,createMotionControls} from './motion-controls.js';
 import {createWalkControls} from './walk-controls.js';
 import {servicePoints} from './service-points.js';
+import {setupInteriorLighting} from './lighting-controls.js';
+import {equipmentLayout,equipmentPoints} from './equipment-layout.js';
+import {setupCirculationLighting} from './circulation-controls.js';
+import {createShadowBudget} from './lighting-shadows.js';
+import {setupSceneLighting} from './scene-lighting.js';
+import {applySurfaceDetails,createRenderDetails} from './render-details.js';
 
 const $ = (selector) => document.querySelector(selector);
 const viewport = $('#viewport');
@@ -26,12 +32,15 @@ let roofConcept = null, rainwaterSystem = null;
 let gardenDesign, orbitCamera, courtyardCamera, skyLight, sunLight, ground;
 let solarControls;
 let interiorCamera;
-let walkCamera,walkControls,motionControls;
+let walkCamera,walkControls,motionControls,walkReturnView;
 let serviceMarker;
+let lightingControls;
+let circulationControls;
+let sceneLighting,renderDetails,shadows,walkRoomKey='',walkProbePending=false;
+const interactionMeshes=[];
 const doorGroups=[];
 const interiors=new Map();
 const interiorLayouts=new Map(),interiorZones=new Map();
-const interiorLights=[];
 const gardenLights = [], gardenEmitters = [], glazingGroups = [];
 const gateLeaves=[];
 let needsRender = true;
@@ -143,7 +152,7 @@ function selectRoom(key) {
       : id === 'kitchen' ? '新增南向推拉窗：宽2.4米、高1.4米、窗台1.2米；窗外梯段、栏杆和楼板仍有遮挡。东窗保留，南窗补充采光和通风。'
       : windows.length ? `建议 ${windows.length} 处窗洞，窗台高 ${[...new Set(windows.map(o => (o.sill / 1000).toFixed(1)))].join(' / ')} 米；见完整墙体视图。` : '';
     const roomItems=interiorLayouts.get(Number(level))?.items.filter(item=>item.space===id)||[];
-    const names={sofa:'沙发','coffee-table':'茶几','tv-cabinet':'电视柜','floor-lamp':'落地灯',bed:'床',nightstand:'床头柜',wardrobe:'衣柜',kitchen:'L 形台面、灶台、水槽与烟机',fridge:'冰箱','dining-set':'四人餐桌椅',vanity:'洗手盆柜',toilet:'坐便器',shower:'开放入口淋浴区','reading-set':'阅读座椅',desk:'书桌'};
+    const names={sofa:'沙发','coffee-table':'茶几','tv-cabinet':'电视柜','floor-lamp':'落地灯',bed:'床',nightstand:'床头柜',wardrobe:'衣柜',kitchen:'L 形台面、灶台、水槽与烟机',fridge:'冰箱','dining-set':'四人餐桌椅',vanity:'洗手盆柜',toilet:'坐便器',shower:'开放入口淋浴区','reading-set':'阅读座椅',desk:'书桌','storage-cabinet':'收纳柜','wall-art':'装饰画'};
     $('#room-furnishing').textContent=roomItems.length?`室内方案：${roomItems.map(item=>names[item.type]).join('、')}。${['kitchen','bathroom-lower','bathroom-upper'].includes(id)?'排水、排烟与防水接法待现场深化。':'家具规格与开合空间仍待选型复核。'}`:'';
   }
   updateSelection();
@@ -162,6 +171,7 @@ function populateRooms() {
 }
 
 function updateView() {
+  shadows?.invalidate();
   if(walkControls?.active&&(state.solar||state.cut||!state.roof||state.view!=='whole'))stopWalking();
   if(state.solar&&(state.cut||!state.roof||!['whole','courtyard'].includes(state.view)))state.solar=false;
   if(state.solar)state.roomView='';
@@ -202,7 +212,7 @@ function updateView() {
   }
   for(const group of doorGroups)group.visible=!state.cut;
   if(serviceMarker)serviceMarker.visible=Boolean(state.roomView)&&serviceMarker.userData.roomKey===state.roomView;
-  if(!walkControls?.active)for(const light of interiorLights)light.visible=Boolean(state.roomView)&&light.userData.roomKey===state.roomView;
+  if(!walkControls?.active)lightingControls?.update(state.interior?state.roomView:'',Boolean(state.solar));
   for(const group of interiorZones.values())group.visible=state.interior&&state.useZones&&!state.solar&&!state.roomView;
   $('#interior-preview').checked=state.interior;
   $('#interior-use-zones').checked=state.useZones;
@@ -221,22 +231,18 @@ function updateView() {
 }
 
 function updateGardenLighting() {
-  if (solarControls?.applyLighting()) return;
+  const indoorNight=lightingControls?.isNight()&&Boolean(state.roomView||walkControls?.active);
+  const outdoorNight=state.mood==='night'&&!state.roomView&&!state.cut&&!state.daylight;
+  const night=indoorNight||outdoorNight;
+  viewport.classList.toggle('interior-night',Boolean(night&&!state.solar));
+  if (solarControls?.applyLighting()){sceneLighting?.apply(sunLight.intensity>0?'day':'night',true);circulationControls?.update(false,true);return;}
   const evening = state.mood === 'evening' && gardenIsVisible(state);
-  viewport.classList.toggle('evening', evening);
-  scene.background.set(evening ? '#526275' : '#e6ebe4');
-  ground.material.color.set(evening ? '#778a83' : '#e6ebe4');
-  skyLight.intensity = evening ? .8 : 2.1;
-  skyLight.color.set(evening ? '#b2c5df' : '#fffdf2');
-  skyLight.groundColor.set(evening?'#535960':'#a5a59e');
-  sunLight.intensity = evening ? .48 : 2.5;
-  sunLight.color.set(evening ? '#ffbf81' : '#fff4df');
-  sunLight.position.set(-8,25,9);
-  sunLight.target.position.set(parameters.site_width/2000,0,-10);
-  renderer.toneMappingExposure = evening ? 1.05 : .98;
-  for (const light of gardenLights) light.visible = evening;
-  for (const material of gardenEmitters) material.emissiveIntensity = evening ? 4 : .35;
-  document.querySelectorAll('[data-mood]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.mood === (evening ? 'evening' : 'day'))));
+  viewport.classList.toggle('evening', evening||night);
+  sceneLighting?.apply(night?'night':evening?'evening':'day');
+  const moodLabel=night?'夜间':evening?'傍晚':'晴日';
+  $('#walk-lighting').textContent=`${moodLabel} · L`;$('#walk-lighting').setAttribute('aria-label',`切换光照，目前${moodLabel}`);
+  circulationControls?.update(evening||night);
+  document.querySelectorAll('[data-mood]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.mood === (night?'night':evening ? 'evening' : 'day'))));
   $('#garden-design').checked = state.garden;
   needsRender = true;
 }
@@ -245,6 +251,7 @@ function fitCamera() {
   if(walkControls?.active){camera=walkCamera;resize();needsRender=true;return;}
   camera = state.roomView ? interiorCamera : state.view === 'courtyard' ? courtyardCamera : orbitCamera;
   controls.object = camera;
+  controls.maxPolarAngle=state.roomView||state.view==='courtyard'?Math.PI*.95:Math.PI*.49;
   if(state.roomView) {
     const [level,id]=state.roomView.split(':');
     const view=interiorViewpoint(parameters,plans.find(p=>p.level===Number(level)),id);
@@ -288,7 +295,9 @@ function fitCamera() {
     minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y);
   }
   const aspect = viewport.clientWidth / viewport.clientHeight;
-  const height = Math.max(maxY - minY, (maxX - minX) / aspect) * 1.18;
+  camera.userData.fittedWidth=(maxX-minX)*1.18;
+  camera.userData.fittedHeight=(maxY-minY)*1.18;
+  const height = Math.max(camera.userData.fittedHeight,camera.userData.fittedWidth/aspect);
   camera.userData.height = height;
   camera.left = -height * aspect / 2; camera.right = height * aspect / 2;
   camera.top = height / 2; camera.bottom = -height / 2;
@@ -300,6 +309,7 @@ function fitCamera() {
 }
 
 function positionLabels() {
+  if(walkControls?.active)return;
   const width = viewport.clientWidth, height = viewport.clientHeight;
   const occupied = [];
   // 优先放置套间更正标注，其次放置房间名；过密时隐藏重叠名称。
@@ -322,23 +332,26 @@ function positionLabels() {
 
 function applyQuality() {
   const mode=$('#render-quality').value,compact=window.innerWidth<900;
-  const ratio=Math.min(window.devicePixelRatio,mode==='smooth'?1:mode==='clear'?2:compact?1.25:1.75);
+  const walking=Boolean(walkControls?.active),ratio=Math.min(window.devicePixelRatio,mode==='smooth'?1:mode==='clear'?2:compact||walking?1.25:1.75);
   const mapSize=mode==='smooth'||(mode==='auto'&&compact)?1024:2048;
   if(renderer.getPixelRatio()!==ratio)renderer.setPixelRatio(ratio);
-  if(sunLight&&sunLight.shadow.mapSize.x!==mapSize){sunLight.shadow.map?.dispose();sunLight.shadow.map=null;sunLight.shadow.mapSize.set(mapSize,mapSize);}
-  $('#quality-note').textContent=mode==='smooth'?'优先流畅，适合手机或较慢设备。':mode==='clear'?'保留更细致的轮廓与阴影，渲染负担较高。':'按窗口大小调整，可按实际流畅度切换。';
+  if(sunLight&&sunLight.shadow.mapSize.x!==mapSize){sunLight.shadow.map?.dispose();sunLight.shadow.map=null;sunLight.shadow.mapSize.set(mapSize,mapSize);sunLight.shadow.needsUpdate=true;}
+  lightingControls?.setQuality(mode,compact||walking);
+  circulationControls?.setQuality(mode,compact||walking);
+  $('#quality-note').textContent=mode==='smooth'?'优先流畅，适合手机或较慢设备。':mode==='clear'?'保留更细致的轮廓、折射与接触阴影，渲染负担较高。':'漫游时优先流畅，退出后恢复细节；也可手动选择画质。';
 }
 
 function resize() {
   applyQuality();
   const width = viewport.clientWidth, height = viewport.clientHeight;
   renderer.setSize(width, height);
+  renderDetails?.resize(width,height,$('#render-quality').value,window.innerWidth<900,Boolean(walkControls?.active));
   if (camera.isPerspectiveCamera) {
     camera.aspect = width / height;
     camera.fov = Math.min(88, THREE.MathUtils.radToDeg(2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(31)) / Math.min(camera.aspect, 1))));
   }
   else {
-    const half = (camera.userData.height || 28) / 2;
+    const half = Math.max(camera.userData.fittedHeight||camera.userData.height||28,(camera.userData.fittedWidth||0)/(width/height))/2;
     camera.left = -half * width / height; camera.right = half * width / height;
     camera.top = half; camera.bottom = -half;
   }
@@ -352,19 +365,46 @@ function updateDrawing() {
   $('#reference-image').src = `/work/reference-floor-${floor}.png`;
 }
 
+function startWalking(captureMouse=false) {
+  if(walkControls.active)return;
+  walkReturnView={state:{...state},position:camera.position.clone(),target:controls.target.clone(),zoom:camera.zoom};
+  const [level,id]=state.roomView.split(':');
+  const start=state.roomView?interiorViewpoint(parameters,plans.find(p=>p.level===Number(level)),id):null;
+  motionControls.selectRoom(1,'');
+  Object.assign(state,{view:'whole',cut:false,roof:true,garden:true,solar:false,daylight:false,suite:false,roomView:'',useZones:false,interior:true,top:false});
+  controls.enabled=false;camera=walkCamera;
+  document.body.classList.add('first-person-active');viewport.classList.add('walking');
+  $('#walk-feedback').textContent='';
+  $('#walk-start').textContent='退出探索';
+  walkRoomKey=null;
+  for(const label of labels)label.element.hidden=true;
+  walkControls.start(start,captureMouse);updateView();fitCamera();
+}
+
 function stopWalking() {
   if(!walkControls?.active)return;
   walkControls.stop();controls.enabled=true;viewport.classList.remove('walking');
+  document.body.classList.remove('first-person-active');
   camera=orbitCamera;controls.object=camera;
-  $('#walk-start').textContent='进入自由行走';
-  updateView();fitCamera();
+  Object.assign(state,walkReturnView.state,{mood:state.mood,gateOpen:state.gateOpen});
+  $('#walk-start').textContent='第一人称探索';
+  updateView();fitCamera();resize();
+  camera.position.copy(walkReturnView.position);camera.zoom=walkReturnView.zoom;
+  controls.target.copy(walkReturnView.target);camera.updateProjectionMatrix();controls.update();
+  $('#walk-enter').focus({preventScroll:true});
 }
 
 function motionAt(ndc,limit=Infinity) {
-  scene.updateMatrixWorld(true);raycaster.setFromCamera(ndc,camera);
-  const visible=[];scene.traverseVisible(o=>{if(o.isMesh&&!o.userData.comparison_only)visible.push(o);});
-  const hit=raycaster.intersectObjects(visible,false)[0];
-  if(!hit||hit.distance>limit)return null;
+  camera.updateMatrixWorld();raycaster.setFromCamera(ndc,camera);
+  const visible=mesh=>{for(let o=mesh;o;o=o.parent)if(!o.visible)return false;return true;};
+  const far=raycaster.far;raycaster.far=limit;
+  // 先找门柜；准星没有对准活动构件时，不扫描整栋房屋的三角形。
+  const hit=raycaster.intersectObjects(motionControls.meshes.filter(visible),false)[0];
+  if(!hit){raycaster.far=far;return null;}
+  raycaster.far=Math.max(0,hit.distance-.001);
+  const blocked=raycaster.intersectObjects(interactionMeshes.filter(o=>o!==hit.object&&visible(o)),false).length>0;
+  raycaster.far=far;
+  if(blocked)return null;
   return motionControls.motions.find(m=>m.data.id===hit.object.userData.motionId);
 }
 
@@ -374,6 +414,7 @@ async function init() {
     if (!response.ok) throw new Error(`无法读取 ${path}`);
     return response.json();
   }));
+  state.interiorStyle=parameters.interior_style.selected;
   $('#dimensions-note').textContent = `用户估计总宽约 ${parameters.site_width / 1000} 米；主体深 ${parameters.house_depth / 1000} 米、前院深 ${parameters.courtyard_depth / 1000} 米按含墙控制。外墙 ${parameters.exterior_wall_thickness / 10} 厘米、内墙 ${parameters.interior_wall_thickness / 10} 厘米、层高 ${parameters.floor_to_floor / 1000} 米暂定。共享隔墙按中心分摊。`;
   $('#screen-note').textContent = `新增影壁已取消。原有挡墙向院中移动，附属间门前净通道 ${parameters.annex_passage_clear_width / 1000} 米；楼梯朝院子的墙及窗已取消。`;
   scene = new THREE.Scene();
@@ -487,15 +528,23 @@ async function init() {
     });
     for (const emitter of emitters) {
       const light = new THREE.SpotLight('#ffd6a1', 18, 5.5, Math.PI / 2.5, .7, 2);
+      light.userData.lighting_group='porch';
       light.target.position.set(0, -1, .15);
       emitter.add(light, light.target); gardenLights.push(light);
     }
   }
   for (const [x, y, h] of courtyardLayout(parameters, plans[0]).lights) {
     const lamp = new THREE.PointLight('#ffd59b', 10, 4.5, 2);
+    lamp.userData.lighting_group='garden';
     lamp.position.set(x, h + .05 + yardElevationAt(parameters,y), -y);
     roots.get(1).add(lamp); gardenLights.push(lamp);
   }
+  for(const light of gardenLights){
+    light.castShadow=true;light.shadow.mapSize.set(512,512);
+    light.shadow.bias=-.0007;light.shadow.normalBias=.024;light.shadow.radius=2;
+    light.shadow.camera.near=.05;light.shadow.camera.far=light.distance;light.shadow.camera.updateProjectionMatrix();
+  }
+  circulationControls=setupCirculationLighting({parameters,plans,roots,gardenLights,gardenEmitters,state,gardenDesign,changed:()=>{updateGardenLighting();needsRender=true;}});
   solarControls=setupSolarControls({parameters,plans,state,scene,roots,skyLight,sunLight,renderer,ground,gardenLights,gardenEmitters,
     refresh:fit=>{updateView();if(fit){populateRooms();fitCamera();}},render:()=>{needsRender=true;}});
   let interiorsEmbedded=true;
@@ -508,53 +557,64 @@ async function init() {
     let doors=roots.get(plan.level).getObjectByName(`DoorDesign_${plan.level}`);
     if(!doors){doors=createDoorDesign(parameters,plan);roots.get(plan.level).add(doors);}
     doorGroups.push(doors);
-    const zones=createUseZones(layout);roots.get(plan.level).add(zones);interiorZones.set(plan.level,zones);
+    const equipment=equipmentLayout(parameters,plan,layout);
+    const zones=createUseZones({...layout,zones:[...layout.zones,...equipment.items.map(item=>({id:item.id,space:item.space,label:`${item.name}检修候选区`,bounds:item.serviceBounds}))]});roots.get(plan.level).add(zones);interiorZones.set(plan.level,zones);
     const optgroup=document.createElement('optgroup');optgroup.label=`${plan.level}层`;
     for(const room of layout.rooms.filter(r=>layout.items.some(item=>item.space===r.id)))optgroup.append(new Option(room.label,`${plan.level}:${room.id}`));
     $('#interior-room-select').append(optgroup);
-    for(const lamp of layout.lights) {
-      const light=new THREE.PointLight('#fff1df',lamp.power,8,2);
-      light.position.set(lamp.position[0],lamp.position[2]-.13,-lamp.position[1]);light.userData.roomKey=`${plan.level}:${lamp.space}`;
-      roots.get(plan.level).add(light);interiorLights.push(light);
-    }
   }
+  lightingControls=setupInteriorLighting({roots,layouts:interiorLayouts,interiors,plans,changed:()=>{
+    if(!state.roomView&&!walkControls?.active)showInterior('1:hall');else updateGardenLighting();needsRender=true;
+  }});
+  sceneLighting=setupSceneLighting({scene,renderer,skyLight,sunLight,ground,parameters,plans});
+  applySurfaceDetails(scene,renderer);
+  renderDetails=createRenderDetails(renderer,scene,camera);
+  shadows=createShadowBudget(scene,renderer.capabilities.maxTextures);
   const world=createWalkWorld(parameters,plans);
   const motions=collectMotions(roots);
   for(const m of motions){const room=plans[m.level-1].spaces.find(s=>s.id===m.node.userData.interior_room);if(room)m.data.label=`${room.label} · ${m.data.label}`;}
   motionControls=createMotionControls({motions,world,body:()=>walkControls?.position,changed:()=>{needsRender=true;}});
-  walkControls=createWalkControls({canvas:renderer.domElement,camera:walkCamera,world,dynamic:()=>motionControls.obstacles().concat(gateObstacles(parameters,plans[0],state.gateOpen)),
-    interact:()=>{const m=motionAt(new THREE.Vector2(0,0),2.7);if(m)motionControls.toggle(m);else $('#motion-note').textContent='请靠近门扇或柜门，将它放在画面中央再操作。';},
+  const cycleWalkLighting=()=>{
+    const sequence=['day','evening','night'],current=lightingControls.isNight()?'night':state.mood;
+    $(`[data-mood="${sequence[(sequence.indexOf(current)+1)%sequence.length]}"]`).click();
+  };
+  $('#walk-lighting').addEventListener('click',cycleWalkLighting);
+  let gateState,gateColliders=[];
+  walkControls=createWalkControls({canvas:renderer.domElement,camera:walkCamera,world,dynamic:()=>{
+    if(gateState!==state.gateOpen){gateState=state.gateOpen;gateColliders=gateObstacles(parameters,plans[0],gateState);}
+    return motionControls.obstacles().concat(gateColliders);
+  },
+    interact:()=>{
+      const m=motionAt(new THREE.Vector2(0,0),2.7);
+      if(m)motionControls.toggle(m);else $('#motion-note').textContent='请靠近门扇或柜门，将准星对准后操作。';
+      $('#walk-feedback').textContent=$('#motion-note').textContent;
+    },
     changed:position=>{
-      needsRender=true;
+      needsRender=true;walkProbePending=true;
       const level=position.z>2.8?2:1;
       const room=interiorLayouts.get(level).rooms.find(r=>position.x>r.bounds[0]&&position.x<r.bounds[2]&&position.y>r.bounds[1]&&position.y<r.bounds[3]);
-      for(const light of interiorLights)light.visible=light.userData.roomKey===`${level}:${room?.id}`;
-    },exit:stopWalking});
-  $('#walk-start').addEventListener('click',()=>{
-    if(walkControls.active){stopWalking();return;}
-    const [level,id]=state.roomView.split(':');
-    const start=state.roomView?interiorViewpoint(parameters,plans.find(p=>p.level===Number(level)),id):null;
-    motionControls.selectRoom(1,'');
-    state.view='whole';state.cut=false;state.roof=true;state.garden=true;state.solar=false;state.daylight=false;state.suite=false;state.roomView='';state.useZones=false;state.interior=true;
-    controls.enabled=false;camera=walkCamera;viewport.classList.add('walking');
-    $('#walk-start').textContent='退出自由行走';walkControls.start(start);updateView();fitCamera();
-  });
+      const location=world.stairAt(position.x,position.y)?'楼梯':room?`${level}层 · ${room.label}`:position.y<parameters.courtyard_depth/1000?'院子':'门廊';
+      if($('#walk-location').textContent!==location)$('#walk-location').textContent=location;
+      const nextRoom=room?`${level}:${room.id}`:'';
+      if(nextRoom!==walkRoomKey){walkRoomKey=nextRoom;lightingControls.update(walkRoomKey,Boolean(state.solar));}
+    },exit:stopWalking,cycleLighting:cycleWalkLighting});
+  for(const id of ['walk-start','walk-enter'])$('#'+id).addEventListener('click',()=>walkControls.active?stopWalking():startWalking(true));
   // 切换展示视图时结束行走，避免另一套相机控制仍接收按键。
   const leaveOnViewChange=event=>{
     const el=event.target.closest('button,input,select');
-    if(el&&el.id!=='walk-start'&&!['motion-toggle','motion-select','gate-toggle','labels'].includes(el.id))stopWalking();
+    if(el&&el.id!=='walk-start'&&!el.hasAttribute('data-mood')&&!['motion-toggle','motion-select','gate-toggle','labels','lighting-scene','lighting-ceiling','lighting-local','lighting-dim','outdoor-garden','outdoor-porch','outdoor-path','outdoor-dim'].includes(el.id))stopWalking();
   };
   $('.sidebar').addEventListener('click',leaveOnViewChange,true);
   $('.sidebar').addEventListener('change',leaveOnViewChange,true);
   for(const id of ['top-view','reset-view','compare','kitchen-window'])$('#'+id).addEventListener('click',stopWalking,true);
-  $('#interior-note').textContent=interiorsEmbedded?'默认 A 已同步到下载模型，B 可切换比较配色。蓝色使用范围为方案预留；家具、饰面与设备选型仍待复核。':'室内方案正在浏览器中预览，下载模型需重建后同步。';
+  $('#interior-note').textContent=interiorsEmbedded?'A 配色方向已确认并同步到下载模型，B 保留比较。蓝色使用范围为方案预留；家具、饰面与设备选型仍待复核。':'室内方案正在浏览器中预览，下载模型需重建后同步。';
   const showInterior = room => {
     state.interior=true;state.roomView=room;state.solar=false;state.view=`floor${room.split(':')[0]}`;
     state.cut=false;state.roof=false;state.daylight=false;state.suite=false;state.top=false;
     updateView();populateRooms();selectRoom(room);fitCamera();
     const [level,id]=room.split(':');motionControls.selectRoom(Number(level),id);
   };
-  const services=plans.flatMap(plan=>servicePoints(interiorLayouts.get(plan.level)).map(point=>({...point,level:plan.level,key:`${plan.level}:${point.id}`})));
+  const services=plans.flatMap(plan=>[...servicePoints(interiorLayouts.get(plan.level)),...equipmentPoints(equipmentLayout(parameters,plan,interiorLayouts.get(plan.level)))].map(point=>({...point,level:plan.level,key:`${plan.level}:${point.id}`})));
   for(const point of services){const room=plans[point.level-1].spaces.find(s=>s.id===point.space);$('#service-select').append(new Option(`${point.level}层${room.label} · ${point.name}`,point.key));}
   serviceMarker=new THREE.Mesh(new THREE.SphereGeometry(.06,16,12),new THREE.MeshBasicMaterial({color:'#d68d37',depthTest:false}));
   serviceMarker.renderOrder=10;serviceMarker.visible=false;serviceMarker.userData.comparison_only=true;scene.add(serviceMarker);
@@ -562,9 +622,14 @@ async function init() {
     const point=services.find(point=>point.key===event.target.value);
     if(!point){serviceMarker.visible=false;serviceMarker.userData.roomKey='';needsRender=true;return;}
     serviceMarker.position.set(point.position[0],point.position[2]+(point.level-1)*parameters.floor_to_floor/1000,-point.position[1]);
+    serviceMarker.scale.setScalar(point.markerScale??(point.kind==='equipment'?.35:1));
     serviceMarker.userData.roomKey=`${point.level}:${point.space}`;
     $('#service-note').textContent=`橙色点：${point.name}。${point.condition} 此点为方案候选位置，不能用于现场预埋。`;
     showInterior(serviceMarker.userData.roomKey);
+    if(point.eye) {
+      camera.position.set(point.eye[0],point.eye[2]+(point.level-1)*parameters.floor_to_floor/1000,-point.eye[1]);
+      controls.target.copy(serviceMarker.position);controls.update();needsRender=true;
+    }
   });
   $('#interior-preview').addEventListener('change',event=>{
     state.interior=event.target.checked;state.roomView='';state.solar=false;
@@ -596,11 +661,24 @@ async function init() {
     state.gateOpen=!state.gateOpen;updateView();
   });
   document.querySelectorAll('[data-mood]').forEach(button => button.addEventListener('click', () => {
+    state.mood=button.dataset.mood;
+    $('#lighting-scene').value=state.mood==='night'?'daily':'day';lightingControls.update();
+    if(walkControls.active){updateGardenLighting();return;}
     state.solar=false;
     state.roomView='';
-    state.mood = button.dataset.mood; state.garden = true; state.cut = false; state.roof = true;
+    state.garden = true; state.cut = false; state.roof = true;state.daylight=false;
     if (!['whole', 'courtyard'].includes(state.view)) state.view = 'whole';
     updateView(); populateRooms(); fitCamera();
+  }));
+  document.querySelectorAll('[data-circulation-view]').forEach(button=>button.addEventListener('click',()=>{
+    state.view='courtyard';state.roomView='';state.solar=false;state.daylight=false;state.cut=false;state.roof=true;state.garden=true;state.mood='night';
+    $('#lighting-scene').value='daily';updateView();populateRooms();fitCamera();
+    const stairs=button.dataset.circulationView==='stairs',depth=parameters.courtyard_depth/1000;
+    if(stairs){camera.position.set(plans[0].stairs.entry_x/1000+.30,1.65,-depth-.95);controls.target.set(13.35,1.70,-depth-1.70);}
+    else {camera.position.set(parameters.entrance_proposal.center_x_mm/1000,yardElevationAt(parameters,depth-2.8)+1.65,-depth+2.8);controls.target.set(parameters.entrance_proposal.center_x_mm/1000,.25,-depth);}
+    controls.update();needsRender=true;
+    $('#view-title').textContent=stairs?'两跑楼梯 · 夜间':'入户台阶 · 夜间';
+    $('#view-subtitle').textContent='灯具朝向与遮挡预览 · 未做照度校核';
   }));
   $('#roof-concept').addEventListener('click', () => {
     state.roomView='';
@@ -659,10 +737,10 @@ async function init() {
   let down;
   renderer.domElement.addEventListener('pointerdown', e => { down = [e.clientX, e.clientY]; });
   renderer.domElement.addEventListener('pointerup', e => {
-    if (e.button !== 0 || !down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 5) return;
+    if (walkControls.active || e.button !== 0 || !down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 5) return;
     const rect = renderer.domElement.getBoundingClientRect();
     pointer.set((e.clientX - rect.left) / rect.width * 2 - 1, 1 - (e.clientY - rect.top) / rect.height * 2);
-    const motion=motionAt(pointer,walkControls.active?2.7:Infinity);
+    const motion=motionAt(pointer);
     if(motion){motionControls.toggle(motion);return;}
     if(roofConcept?.visible||walkControls.active)return;
     raycaster.setFromCamera(pointer, camera);
@@ -674,13 +752,29 @@ async function init() {
   populateRooms(); updateView(); resize(); fitCamera();
   $('#loading').hidden = true;
   viewport.dataset.ready = 'true';
-  let previousTime=performance.now();
+  $('#walk-start').disabled=false;$('#walk-enter').disabled=false;
+  scene.traverse(o=>{if(o.isMesh&&!o.userData.comparison_only)interactionMeshes.push(o);});
+  if(new URLSearchParams(location.search).get('walk')==='1')startWalking();
+  let previousTime=performance.now(),nextWalkProbe=0;
   renderer.setAnimationLoop(time => {
-    const dt=Math.min((time-previousTime)/1000,.035);previousTime=time;
-    const movingParts=motionControls.tick(dt),walking=walkControls.tick(dt);
-    if(movingParts||walking)needsRender=true;
+    const elapsed=Math.max(0,(time-previousTime)/1000),dt=Math.min(elapsed,.12);previousTime=time;
+    // 行走碰撞内部按 4.5 厘米分步；低帧率仍按实际时间移动，开门动画保留小步长。
+    const movingParts=motionControls.tick(Math.min(dt,.035)),walking=walkControls.tick(dt),lighting=lightingControls.tick(elapsed);
+    if(movingParts){shadows.invalidate();walkProbePending=true;}
+    if(movingParts&&state.solar)solarControls.sceneChanged();
+    if(movingParts||walking||lighting)needsRender=true;
+    if(walkControls.active&&(needsRender||walkProbePending)&&time>=nextWalkProbe){
+      nextWalkProbe=time+120;walkProbePending=false;
+      const m=motionAt(new THREE.Vector2(0,0),2.7);
+      $('#walk-target').hidden=!m;
+      if(m)$('#walk-target').textContent=`${m.data.label} · 空格 / 开关按钮操作`;
+      $('#walk-interact').disabled=!m;
+      if($('#walk-feedback').textContent&&$('#walk-feedback').textContent!==$('#motion-note').textContent)$('#walk-feedback').textContent=$('#motion-note').textContent;
+    }
     if (!needsRender) return;
-    renderer.render(scene, camera); positionLabels(); needsRender = false;
+    sceneLighting.update(camera,{roomKey:walkControls.active?walkRoomKey:state.roomView,close:walkControls.active||Boolean(state.roomView),walking:walkControls.active,solar:state.solar,cut:state.cut});
+    shadows.update(camera,walkControls.active?`${walkControls.position.z>2.8?2:1}/${walkRoomKey||'outside'}`:null);
+    renderDetails.render(camera,state); positionLabels(); needsRender = false;
   });
 }
 

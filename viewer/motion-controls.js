@@ -24,9 +24,13 @@ export function poseMotion(motion,value) {
 }
 
 export function motionObstacle(m) {
-  const b=m.bounds,points=[[b.min.x,b.min.z],[b.max.x,b.min.z],[b.max.x,b.max.z],[b.min.x,b.max.z]].map(([x,z])=>m.node.localToWorld(new THREE.Vector3(x,0,z)));
-  const bottom=m.node.localToWorld(new THREE.Vector3(0,b.min.y,0)).y,top=m.node.localToWorld(new THREE.Vector3(0,b.max.y,0)).y;
-  return {polygon:points.map(p=>[p.x,-p.z]),bottom,top,owner:`${m.level}:${m.data.owner}`,label:m.data.label};
+  m.node.updateWorldMatrix(true,false);
+  const matrix=m.node.matrixWorld;
+  if(m.obstacleMatrix?.equals(matrix))return m.obstacle;
+  (m.obstacleMatrix??=new THREE.Matrix4()).copy(matrix);
+  const b=m.bounds,points=[[b.min.x,b.min.z],[b.max.x,b.min.z],[b.max.x,b.max.z],[b.min.x,b.max.z]].map(([x,z])=>new THREE.Vector3(x,0,z).applyMatrix4(matrix));
+  const bottom=new THREE.Vector3(0,b.min.y,0).applyMatrix4(matrix).y,top=new THREE.Vector3(0,b.max.y,0).applyMatrix4(matrix).y;
+  return m.obstacle={polygon:points.map(p=>[p.x,-p.z]),bottom,top,owner:`${m.level}:${m.data.owner}`,label:m.data.label};
 }
 
 export function createMotionControls({motions,world,body,changed}) {

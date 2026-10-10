@@ -31,7 +31,18 @@
         <div class="mood-buttons" role="group" aria-label="庭院氛围">
           <button data-mood="day" aria-pressed="true">晴日</button>
           <button data-mood="evening" aria-pressed="false">傍晚亮灯</button>
+          <button data-mood="night" aria-pressed="false">夜间通行</button>
         </div>
+        <details class="solar-assumptions"><summary>庭院与通行灯光</summary>
+          <label class="check-row"><input id="outdoor-garden" type="checkbox" checked>庭院氛围灯</label>
+          <label class="check-row"><input id="outdoor-porch" type="checkbox" checked>门廊与楼梯口</label>
+          <label class="check-row"><input id="outdoor-path" type="checkbox" checked>院门、台阶与两跑楼梯</label>
+          <label class="field-row" for="outdoor-dim">观看亮度 <output id="outdoor-dim-value">100%</output></label>
+          <input id="outdoor-dim" type="range" min="0" max="100" step="10" value="100" aria-label="公共照明观看亮度">
+          <p id="outdoor-light-note" role="status"></p>
+          <div class="mood-buttons"><button data-circulation-view="entry">看台阶夜景</button><button data-circulation-view="stairs">看楼梯夜景</button></div>
+          <p>栏杆灯向踏面和平台照射；上下口保留手动控制，感应方式待选。灯具防护、固定、电路与实际照度仍需按产品和现场复核。</p>
+        </details>
         <button data-view="courtyard" class="outline-button" aria-pressed="false">走进小院</button>
         <button id="gate-toggle" class="outline-button" aria-pressed="true">关闭院门</button>
         <label class="check-row"><input id="garden-design" type="checkbox" checked>显示庭院布置</label>
@@ -50,10 +61,11 @@
         <p class="control-hint">隐藏 1.2 米以上的墙体，方便看布局。</p>
         <label class="check-row"><input id="labels" type="checkbox" checked>显示房间名称</label>
         <label class="room-view-label" for="render-quality">浏览画质</label>
-        <select id="render-quality"><option value="auto">自动 · 按视口调整</option><option value="clear">清晰 · 更多细节</option><option value="smooth">流畅 · 降低渲染负担</option></select>
+        <select id="render-quality"><option value="auto">自动 · 漫游优先流畅</option><option value="clear">清晰 · 更多细节</option><option value="smooth">流畅 · 降低渲染负担</option></select>
         <p id="quality-note" class="control-hint"></p>
         <button id="roof-concept" class="outline-button" aria-pressed="false" disabled>查看屋顶概念</button>
         <p id="roof-note" class="control-hint">正在核对模型中的概念屋顶…</p>
+        <a href="/viewer/design-review.html?panel=building" class="review-link">查看屋面、卫浴与窗台候选节点 →</a>
       </section>
 
       <section class="control-section interior-section">
@@ -67,19 +79,31 @@
         <label class="room-view-label" for="interior-room-select">从房间内看</label>
         <select id="interior-room-select"><option value="">选择厨房、卫浴或卧室</option></select>
         <label class="check-row"><input id="interior-preview" type="checkbox" checked>显示室内布置</label>
-        <label class="check-row"><input id="interior-use-zones" type="checkbox">查看通道与使用空间</label>
+        <label class="check-row"><input id="interior-use-zones" type="checkbox">查看通道、使用与设备检修空间</label>
         <p id="interior-note" class="solar-note">正在核对下载模型中的室内方案…</p>
+        <details class="lighting-panel"><summary>室内灯光与夜间场景</summary>
+          <label class="room-view-label" for="lighting-scene">照明场景</label>
+          <select id="lighting-scene"><option value="day">白天 · 自然光</option><option value="daily">夜间 · 日常</option><option value="rest">夜间 · 休息</option><option value="task">夜间 · 阅读 / 家务</option></select>
+          <label class="check-row"><input id="lighting-ceiling" type="checkbox" checked>顶灯</label>
+          <label class="check-row"><input id="lighting-local" type="checkbox" checked>局部灯（台面 / 阅读 / 床头 / 镜前）</label>
+          <label class="field-row" for="lighting-dim">观看亮度 <output id="lighting-dim-value">100%</output></label>
+          <input id="lighting-dim" type="range" min="0" max="100" step="10" value="100" aria-label="观看亮度">
+          <p id="lighting-room-note" class="solar-note" role="status"></p>
+          <p class="solar-note">日光与室内灯分开控制，敞口相连的厅餐厨一起亮灯。数值用于观看比较；窗光与反射为实时近似，灯具配光与实际照度尚未复核。</p>
+        </details>
         <a id="design-review-link" href="/viewer/design-review.html" class="outline-button">装修尺寸图与复核清单 ↗</a>
         <label class="room-view-label" for="motion-select">门与柜体开合</label>
         <select id="motion-select"><option value="">选择构件，或点模型中的门扇</option></select>
         <button id="motion-toggle" class="outline-button" disabled>打开构件</button>
         <p id="motion-note" class="solar-note" aria-live="polite">房门、柜门、抽屉与冰箱门可开合；遇到墙体或家具会停止。</p>
-        <button id="walk-start" class="outline-button">进入自由行走</button>
-        <p class="solar-note">从当前房间或院子出发。WASD / 方向键移动，拖动看四周，Q / E 转向，空格开关面前的门，Esc 退出。触屏使用画面内方向键。</p>
-        <details class="solar-assumptions"><summary>厨卫与设备接驳</summary>
-          <label class="room-view-label" for="service-select">查看候选接点</label>
+        <button id="walk-start" class="outline-button" disabled>第一人称探索</button>
+        <p class="solar-note">从当前房间或院子出发。鼠标环顾，WASD / 方向键移动，Shift 快走，Q / E 转向，空格开关面前的门，Esc 返回原视图。触屏拖动环看，按住画面内方向键行走。</p>
+        <details class="solar-assumptions"><summary>厨卫、空调与排风候选</summary>
+          <label class="room-view-label" for="service-select">查看设备与候选接点</label>
           <select id="service-select"><option value="">选择设备</option></select>
           <p id="service-note" class="solar-note">标记设备旁的候选位置。给水入口、污水出口、配电箱和热水来源未定，主管路线尚未设计。</p>
+          <p class="solar-note">10 处空调仅预留候选机位，是否安装、匹数和采暖方式待定；4 处卫浴排风独立考虑。两层餐厨排烟、外机、室外出口及穿墙孔尚未确定。</p>
+          <a href="/viewer/design-review.html?panel=equipment">查看灯具、设备图与连接关系 ↗</a>
         </details>
       </section>
 
@@ -91,7 +115,7 @@
           <label class="field-row">日期<input id="solar-date" type="date" value="2026-12-22" min="2020-01-01" max="2099-12-31" required></label>
           <div class="mood-buttons"><button data-season="12-22">冬季</button><button data-season="06-21">夏季</button></div>
           <label class="field-row" for="solar-hour">北京时间 <output id="solar-time">12:00</output></label>
-          <input id="solar-hour" type="range" min="0" max="23.75" step="0.25" value="12" aria-label="北京时间">
+          <input id="solar-hour" type="range" min="0" max="1435" step="5" value="720" aria-label="北京时间">
           <p id="solar-position" class="solar-note" aria-live="polite"></p>
           <label class="check-row"><input id="solar-neighbors" type="checkbox" checked>加入邻房遮挡</label>
           <details class="solar-assumptions"><summary>调整未实测条件</summary>
@@ -102,10 +126,19 @@
             <label class="field-row">北纬<input id="solar-latitude" type="number" min="-89" max="89" step="0.001" required></label>
             <label class="field-row">东经<input id="solar-longitude" type="number" min="-180" max="180" step="0.001" required></label>
             <label class="field-row">图纸北向偏角（°）<input id="solar-north" type="number" min="-180" max="180" step="1" required></label>
-            <p>偏角顺时针为正。例如图纸上方朝东北，填 45°。</p>
+            <p>偏角顺时针为正。例如图纸上方朝东北，填 45°。窗向名称仍按图纸上北标记，计算使用实际偏角。</p>
           </details>
-          <div class="solar-results"><p>窗外样点可见太阳数</p><div id="solar-samples" aria-live="polite"></div></div>
-          <p class="solar-note">每窗 9 个样点，只比较当前时刻的几何遮挡；不代表室内照度、日照时长或验收结果。采用 <a href="https://gml.noaa.gov/grad/solcalc/solareqns.PDF" target="_blank" rel="noreferrer">NOAA 太阳位置近似算法</a>，未计大气折射。<a href="https://ungegn.un.org/dashboard/cities/details?id=2067" target="_blank" rel="noreferrer">坐标来源</a></p>
+          <label class="room-view-label" for="solar-window-group">查看窗组</label>
+          <select id="solar-window-group"><option value="focus">重点窗 · 南向与北排</option><option value="1">一层全部窗</option><option value="2">二层全部窗</option></select>
+          <div class="solar-results"><p>当前时刻 · 窗外见光样点 / 9</p><div id="solar-samples" aria-live="polite"></div></div>
+          <div class="solar-results"><h3>全天直射时段 · 方案估算</h3>
+            <p class="solar-note">每 10 分钟采样一次，计算全部窗。时间带表示窗中心点见光，点击可查看对应时刻；展开每窗可看遮挡来源与诊断对比。没有直射不等于没有漫射光。</p>
+            <button id="solar-daily-run" class="outline-button">计算全天直射时段</button>
+            <p id="solar-daily-status" class="solar-note" role="status" data-state="idle">按上方日期、北向、邻房和当前模型计算。</p>
+            <div id="solar-daily-results"></div>
+            <button id="solar-daily-export" class="outline-button" disabled>导出本次估算 JSON</button>
+          </div>
+          <details class="solar-assumptions"><summary>计算口径与下一步实测</summary><p>采用 <a href="https://gml.noaa.gov/grad/solcalc/solareqns.PDF" target="_blank" rel="noreferrer">NOAA 太阳位置近似算法</a>。每窗 3×3 样点位于墙外 30 mm，只计算实体遮挡；不计折射、气象、天空漫射、玻璃透射或室内反射。时段界线为 10 分钟中点采样的近似值，短时遮挡可能遗漏。</p><p>先测精确北向、邻房顶部同基准标高及遮挡轮廓，再更新模型重算。当前不是日照达标或室内照度结论。</p><a href="/viewer/survey.html?group=邻房与日照">记录邻房与北向实测 →</a><p><a href="https://ungegn.un.org/dashboard/cities/details?id=2067" target="_blank" rel="noreferrer">邯郸参考坐标来源</a></p></details>
         </div>
       </section>
 
@@ -152,14 +185,15 @@
     <section id="viewport" aria-label="可旋转的住宅三维模型">
       <div class="viewport-bar">
         <div><strong id="view-title">整栋住宅</strong><span id="view-subtitle">完整墙体 · 概念屋顶</span></div>
-        <div class="camera-buttons"><button id="top-view" aria-pressed="false">俯视</button><button id="reset-view">复位</button></div>
+        <div class="camera-buttons"><button id="walk-enter" disabled>第一人称探索</button><button id="top-view" aria-pressed="false">俯视</button><button id="reset-view">复位</button></div>
       </div>
       <div id="loading" role="status">正在打开住宅模型…</div>
       <div id="room-labels"></div>
       <div id="solar-badge" hidden></div>
+      <div id="solar-ray-note" hidden role="status"><span></span><button aria-label="清除遮挡路径">清除</button></div>
       <div id="walk-pad" hidden>
-        <div class="walk-caption"><span id="walk-status"></span><button id="walk-exit">退出行走</button></div>
-        <div class="walk-actions"><button id="walk-interact">开关面前构件</button><span>拖动环看</span></div>
+        <div class="walk-caption"><div class="walk-place"><small>第一人称探索</small><strong id="walk-location">院子</strong><span id="walk-status"></span></div><div class="walk-tools"><button id="walk-lighting" aria-label="切换光照">晴日 · L</button><button id="walk-exit">退出探索 <span>Esc</span></button></div></div>
+        <div class="walk-actions"><button id="walk-interact" disabled>开关面前构件</button><span id="walk-look-hint"></span><span id="walk-feedback" role="status"></span></div>
         <div class="walk-direction" role="group" aria-label="行走方向">
           <button data-walk-key="KeyW" aria-label="向前走">↑</button>
           <button data-walk-key="KeyA" aria-label="向左走">←</button>
@@ -167,6 +201,7 @@
           <button data-walk-key="KeyD" aria-label="向右走">→</button>
         </div>
         <span class="walk-crosshair" aria-hidden="true">+</span>
+        <span id="walk-target" hidden></span>
       </div>
       <div class="viewport-footer"><span>拖动旋转 · 滚轮缩放 · 右键平移</span><span id="scale-note">单位：米</span></div>
     </section>

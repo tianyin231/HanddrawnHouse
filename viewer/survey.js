@@ -2,7 +2,7 @@ import {auditDimensions,BASIS_LABELS,validateMeasurement,measurementComparison,p
 const $=id=>document.getElementById(id);
 const KEY='HanddrawnHouse:measurements:v1';
 const NS='http://www.w3.org/2000/svg';
-let report,parameters,plans,records=[],floor=1,selected='master-bedroom',editing=null;
+let report,parameters,plans,records=[],floor=1,selected='master-bedroom',editing=null,printFilter=null;
 const number=value=>value===null||value===undefined?'待测':Number(value).toLocaleString('zh-CN',{maximumFractionDigits:2});
 const size=values=>values.map(v=>(v/1000).toFixed(2)).join(' × ')+' m';
 function el(tag,text,className){const node=document.createElement(tag);if(text!==undefined)node.textContent=text;if(className)node.className=className;return node;}
@@ -104,6 +104,8 @@ async function load(){
     else $('issues').append(el('p','当前参数与可检查的平面字段一致。模型仍为待复核状态；现场数据尚未验证。'));
     for(const decision of report.missing_decisions)$('missing-decisions').append(el('li',decision));
     for(const group of new Set(report.measurements.map(f=>f.group))){const option=el('option',group);option.value=group;$('group-filter').append(option);}
+    const requestedGroup=new URLSearchParams(location.search).get('group');
+    if([...$('group-filter').options].some(option=>option.value===requestedGroup))$('group-filter').value=requestedGroup;
     for(const [value,label] of Object.entries(BASIS_LABELS)){const option=el('option',label);option.value=value;$('measured-basis').append(option);}
     try{const stored=localStorage.getItem(KEY);if(stored)records=parseMeasurementFile(stored);}catch{message('已有记录无法读取或格式损坏，未自动覆盖。请先保留原始备份；本页仍可查看校核数据。',true);}
     renderRoom();drawPlan();renderLedger();$('content').hidden=false;
@@ -134,5 +136,14 @@ $('import-records').addEventListener('change',async event=>{
 });
 $('export-csv').addEventListener('click',exportChecklist);
 $('export-audit').addEventListener('click',()=>download('HanddrawnHouse-尺寸数据校核.json',JSON.stringify(report,null,2),'application/json'));
-$('print').addEventListener('click',()=>{const old=$('group-filter').value;$('group-filter').value='';renderLedger();window.print();$('group-filter').value=old;renderLedger();});
+// 浏览器菜单、快捷键和页面按钮共用打印生命周期，防止分类筛选漏掉台账。
+window.addEventListener('beforeprint',()=>{
+  if(!report||printFilter!==null)return;
+  printFilter=$('group-filter').value;$('group-filter').value='';renderLedger();
+});
+window.addEventListener('afterprint',()=>{
+  if(printFilter===null)return;
+  $('group-filter').value=printFilter;printFilter=null;renderLedger();
+});
+$('print').addEventListener('click',()=>window.print());
 load();

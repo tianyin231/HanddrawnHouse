@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {createInteriorDesign,applyInteriorStyle} from '../viewer/interior-design.js';
 import {interiorLayout} from '../viewer/interior-layout.js';
+import {kitchenFrame} from '../viewer/kitchen-layout.js';
 
 const read=name=>JSON.parse(readFileSync(new URL(`../${name}`,import.meta.url),'utf8'));
 const p=read('house_parameters.json'),plans=[read('plan_floor_1.json'),read('plan_floor_2.json')];
@@ -42,12 +43,15 @@ test('两层家具不侵入入门、柜前、椅后和卫浴使用范围',()=>{
 });
 
 test('厨房水槽有下沉盆底，台面没有封住水槽洞',()=>{
-  const objects=designs[0].children.filter(obj=>obj.userData.interior_room==='kitchen'&&obj.userData.interior_kind==='furniture');
-  const ray=new THREE.Raycaster(new THREE.Vector3(14.13,2.5,-11.59),new THREE.Vector3(0,-1,0));
-  const hit=ray.intersectObjects(objects,false)[0];
-  assert.ok(hit&&hit.point.y<.70&&hit.point.y>.62);
-  ray.ray.origin.set(13.87,2.5,-10.99);
-  assert.ok(Math.abs(ray.intersectObjects(objects,false)[0].point.y-.855)<1e-5);
+  for(const [i,plan] of plans.entries())for(const item of interiorLayout(p,plan).items.filter(v=>v.type==='kitchen')) {
+    const objects=designs[i].children.filter(obj=>obj.userData.interior_room===item.space&&obj.userData.interior_kind==='furniture');
+    const f=kitchenFrame(item),[x,y,x1]=f.bounds,[a,q]=f.point([x1-.30,y+.9]);
+    const ray=new THREE.Raycaster(new THREE.Vector3(a,2.5,-q),new THREE.Vector3(0,-1,0));
+    const hit=ray.intersectObjects(objects,false)[0];
+    assert.ok(hit&&hit.point.y<.70&&hit.point.y>.62);
+    const [b,r]=f.point([x1-.58,y+.20]);ray.ray.origin.set(b,2.5,-r);
+    assert.ok(Math.abs(ray.intersectObjects(objects,false)[0].point.y-.855)<1e-5);
+  }
 });
 
 test('切换室内配色保留家具几何与通道，不重复添加模型',()=>{

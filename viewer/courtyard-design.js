@@ -1,6 +1,8 @@
+import {courtyardLayout} from './courtyard-layout.js';
+export {courtyardLayout,gardenIsVisible} from './courtyard-layout.js';
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { yardElevationAt, siteLayout, annexRoofHeightAt } from './site-layout.js';
+import { yardElevationAt, siteLayout, annexRoofHeightAt, ANNEX_EDGE } from './site-layout.js';
 
 // 庭院概念：几何以米表示，位置采用平面图的东、北、高坐标。
 // 不指定采购树种与基础做法；排水坡度仅为待复核方案。
@@ -21,43 +23,6 @@ export const GARDEN_MATERIALS = {
   roof: { color: '#777e7e', roughness: .94 },
   lamp: { color: '#ffe6b1', roughness: .4, emissive: '#ffd08a', emissiveIntensity: .35 }
 };
-
-export function courtyardLayout(p, plan) {
-  if (p.units !== 'mm' || p.upper_front_area !== 'courtyard_void') throw new Error('庭院方案需要毫米平面和前院挑空。');
-  const width = p.site_width / 1000, depth = p.courtyard_depth / 1000;
-  const passage = plan.annex_passage.bounds.map(value => value / 1000);
-  const screen = plan.annex_passage.screen_axis_x / 1000;
-  const wall = p.exterior_wall_thickness / 1000;
-  // 布置随院深和挡墙定位移动，不用图像像素作为尺寸依据。
-  const north = depth - .35;
-  return {
-    width, depth, passage, screen, wall, elevation: -p.entrance_proposal.yard_drop_mm / 1000,
-    status: 'concept_only_needs_review',
-    paths: [
-      { id: 'gate-to-yard', bounds: [.36, 1.55, 7.3, 3.45], clearWidth: 1.9 },
-      { id: 'yard-to-porch', bounds: [5.5, 3.45, 7.3, depth], clearWidth: 1.8 },
-      { id: 'annex-passage', bounds: passage, clearWidth: p.annex_passage_clear_width / 1000 },
-      { id: 'across-annex', bounds: [7.3, 4.1, width - wall, 5.4], clearWidth: 1.3 }
-    ],
-    beds: [
-      { id: 'south-border', bounds: [2.15, .45, screen - .65, 1.25], height: .28 },
-      { id: 'tree-garden', bounds: [.6, depth - 2.3, 2.7, north], height: .24 },
-      { id: 'east-border', bounds: [width - 1.05, 5.65, width - .35, depth - .35], height: .3 }
-    ],
-    terrace: [2.85, depth - 3.05, 5.05, north],
-    tree: { x: 1.68, y: depth - 1.38, height: 3.25, crownRadius: .98 },
-    annex: [passage[2], 0, width, 4.09],
-    lights: [
-      [1.0, 1.02, .55], [screen - .98, .98, .55],
-      [.9, depth - .65, .55], [width - .7, depth - .68, .6],
-      [screen - .18, 3.5, 1.35]
-    ]
-  };
-}
-
-export function gardenIsVisible(state) {
-  return state.garden && !state.cut && ['whole', 'courtyard'].includes(state.view);
-}
 
 export function createCourtyardDesign(p, plan) {
   const layout = courtyardLayout(p, plan), buckets = new Map();
@@ -205,10 +170,11 @@ export function createCourtyardDesign(p, plan) {
     g.computeVertexNormals();add('roof',g,[0,0,0]);
   }
   // 压顶收在附属间范围内，留出找坡层和防水翻边的表达空间。
-  for (const bounds of [[ax0, ay0, ax1, ay0 + .10], [ax0, ay0 + .10, ax0 + .10, ay1],
-    [ax1 - .10, ay0 + .10, ax1, ay1], [ax0 + .10, ay1 - .10, ax1 - .10, ay1]]) {
-    box('plaster', bounds, annexHeight + .12, .27);
-    box('roof', bounds, annexHeight + .39, .025);
+  const edge=ANNEX_EDGE,t=edge.width;
+  for (const bounds of [[ax0, ay0, ax1, ay0 + t], [ax0, ay0 + t, ax0 + t, ay1],
+    [ax1 - t, ay0 + t, ax1, ay1], [ax0 + t, ay1 - t, ax1 - t, ay1]]) {
+    box('plaster', bounds, annexHeight + edge.baseAboveWall, edge.height);
+    box('roof', bounds, annexHeight + edge.baseAboveWall + edge.height, edge.capThickness);
   }
   box('wood', [ax0, .05, ax0 + .045, ay1 - .05], annexHeight - .14, .14);
 

@@ -22,7 +22,7 @@ def mount(context,stored=None,values=None,failed=None,storage_fail=False):
       window.fetch=async url=>new Response(JSON.stringify(window.__fixture[url]),{status:config.failed===url?404:200,headers:{'Content-Type':'application/json'}});
       const original=URL.createObjectURL.bind(URL);URL.createObjectURL=blob=>{const url=original(blob);window.__blobs.set(url,blob);return url;};
       HTMLAnchorElement.prototype.click=function(){const blob=window.__blobs.get(this.href);if(blob)blob.text().then(text=>window.__exports.push({name:this.download,text}));};
-      window.print=()=>{window.__printedRows=document.querySelectorAll('#ledger tr').length;};
+      window.print=()=>{window.dispatchEvent(new Event('beforeprint'));window.__printedRows=document.querySelectorAll('#ledger tr').length;window.dispatchEvent(new Event('afterprint'));};
     }''',{'values':values or source,'stored':stored,'failed':failed,'storageFail':storage_fail})
     errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
     page.add_script_tag(content=bundle)

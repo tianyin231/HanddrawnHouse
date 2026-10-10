@@ -1,7 +1,7 @@
 // 门扇开启方向为布置方案；门洞仍由原平面控制，不增删通行关系。
 export function doorLayout(p,plan) {
   const result=[];
-  for(const o of plan.openings.filter(o=>o.kind==='door')) {
+  for(const o of plan.openings.filter(o=>o.kind==='door'&&o.door_leaf!==false)) {
     const wall=plan.walls.find(w=>w.id===o.wall_id),horizontal=wall.a[1]===wall.b[1];
     const x=(wall.a[0]+(horizontal?o.offset:0))/1000,y=(wall.a[1]+(horizontal?0:o.offset))/1000;
     const width=o.width/1000-.116,height=o.head/1000-.065;

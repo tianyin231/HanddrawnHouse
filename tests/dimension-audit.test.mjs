@@ -16,7 +16,7 @@ const record=overrides=>({id:'site_width',value:14680,unit:'mm',basis:'outer',me
 test('baseline contracts pass without claiming survey, geometry or construction acceptance',()=>{
   const before=JSON.stringify(baseline),report=auditDimensions(freeze(baseline.p),freeze(baseline.plans));
   assert.equal(report.data_status,'pass');assert.deepEqual(report.issues,[]);
-  assert.equal(report.rooms.length,31);assert.equal(report.openings.length,50);assert.equal(report.measurements.length,42);
+  assert.equal(report.rooms.length,31);assert.equal(report.openings.length,49);assert.equal(report.measurements.length,42);
   assert.equal(report.model_status,'needs_review');assert.equal(report.engineering_acceptance,'not_assessed');
   assert.equal(report.binary_models_checked,false);assert.equal(report.field_measurements_verified,0);
   assert.ok(report.measurements.every(m=>m.field_verified===false));assert.equal(JSON.stringify(baseline),before);

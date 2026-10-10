@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {sunBlockerInfo} from './solar-obstructions.js';
 
 const RAD = Math.PI / 180;
 
@@ -56,33 +57,81 @@ export function createNeighbors(p, heights) {
 }
 
 export function windowSamples(p, plans) {
-  const targets = [[1,'south-master','一层主卧南窗'],[1,'hall-front-west','一层厅堂南窗'],[1,'south-kitchen','厨房南窗'],[2,'south-master','二层主卧南窗']];
-  return targets.map(([level, id, label]) => {
-    const plan = plans.find(item=>item.level===level), opening = plan.openings.find(item=>item.id===id);
+  const targets=[];
+  for(const plan of plans)for(const opening of plan.openings.filter(o=>o.kind==='window')) {
+    const level=plan.level,space=plan.spaces.find(s=>s.id===opening.space_id);
     const wall = plan.walls.find(item=>item.id===opening.wall_id);
     const dx=wall.b[0]-wall.a[0], dy=wall.b[1]-wall.a[1], length=Math.hypot(dx,dy);
+    const [x,y,x1,y1]=space.clear_bounds_mm,horizontal=dy===0;
+    const normal=horizontal?new THREE.Vector3(0,0,(y+y1)/2>wall.a[1]?1:-1):new THREE.Vector3((x+x1)/2>wall.a[0]?-1:1,0,0);
+    const face=horizontal?(normal.z>0?'南':'北'):(normal.x>0?'东':'西');
     const points=[];
     for(const a of [.2,.5,.8]) for(const h of [.2,.5,.8]) {
       const distance=opening.offset+opening.width*a;
       points.push(new THREE.Vector3((wall.a[0]+dx/length*distance)/1000,
         ((level-1)*p.floor_to_floor+opening.sill+(opening.head-opening.sill)*h)/1000,
-        -(wall.a[1]+dy/length*distance)/1000 + wall.thickness/2000 + .03));
+        -(wall.a[1]+dy/length*distance)/1000).addScaledVector(normal,wall.thickness/2000+.03));
     }
-    return {label, points, normal:new THREE.Vector3(0,0,1)};
+    targets.push({id:`${level}:${opening.id}`,opening_id:opening.id,level,space:space.id,face,label:`${level}层${space.label} · ${face}窗`,points,normal});
+  }
+  for(const target of targets) {
+    const same=targets.filter(t=>t.label===target.label);
+    if(same.length>1)same.forEach((t,i)=>{t.label+=` ${i+1}`;});
+  }
+  return targets;
+}
+
+// 固定本次计算的矩阵；先排除射线不可能碰到的包围盒，命中实体后立即停止。
+export function prepareSunBlockers(objects) {
+  const meshes=objects.map(source=>{
+    source.geometry.computeBoundingBox();
+    const mesh=new THREE.Mesh(source.geometry,source.material);
+    mesh.matrixAutoUpdate=false;mesh.matrixWorld.copy(source.matrixWorld);
+    return {mesh,box:source.geometry.boundingBox.clone().applyMatrix4(source.matrixWorld),info:sunBlockerInfo(source)};
   });
+  const blocked=ray=>{
+    const hits=[];
+    for(const {mesh,box} of meshes) {
+      if(!ray.ray.intersectsBox(box))continue;
+      mesh.raycast(ray,hits);
+      if(hits.length)return true;
+    }
+    return false;
+  };
+  blocked.trace=ray=>{
+    let nearest=null;const groups=new Set(),hits=[];
+    for(const {mesh,box,info} of meshes) {
+      if(!ray.ray.intersectsBox(box))continue;
+      hits.length=0;mesh.raycast(ray,hits);
+      for(const hit of hits) {
+        groups.add(info.group);
+        if(!nearest||hit.distance<nearest.distance)nearest={...info,distance:hit.distance,point_m:hit.point.toArray()};
+      }
+    }
+    return {hit:nearest,groups:[...groups].sort()};
+  };
+  return blocked;
+}
+
+export function centerSunDiagnostic(target,solar,blocked) {
+  if(solar.altitude<=0)return {state:'night'};
+  if(target.normal.dot(solar.direction)<=0)return {state:'back'};
+  const origin=target.points[Math.floor(target.points.length/2)];
+  const result=blocked.trace(new THREE.Raycaster(origin,solar.direction,.002,120));
+  return {state:result.hit?'blocked':'direct',...result};
 }
 
 // 窗外九个几何样点，只判断是否有不透明构件遮住太阳，不推算室内照度。
 export function directSunSamples(targets, solar, objects) {
   const ray = new THREE.Raycaster(undefined, solar.direction, .002, 120);
+  const blocked=typeof objects==='function'?objects:prepareSunBlockers(objects);
   return targets.map(target => {
-    let direct = 0;
+    const visible=target.points.map(()=>false);
     if (solar.altitude > 0 && target.normal.dot(solar.direction) > 0) {
-      for(const point of target.points) {
-        ray.ray.origin.copy(point);
-        if(!ray.intersectObjects(objects,false).length) direct++;
+      for(const [index,point] of target.points.entries()) {
+        ray.ray.origin.copy(point);visible[index]=!blocked(ray);
       }
     }
-    return {label:target.label, direct, total:target.points.length};
+    return {id:target.id,label:target.label,direct:visible.filter(Boolean).length,total:visible.length,center:visible[Math.floor(visible.length/2)],visible};
   });
 }

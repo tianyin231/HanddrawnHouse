@@ -152,7 +152,7 @@ for level in (1,2):
     assert lo[0]>=-1e-5 and hi[0]<=P["site_width"]/1000+1e-5
     assert lo[1]>=P["courtyard_depth"]/1000-1e-5,"室内家具或吊顶侵入前院"
     interior_bounds[level]=[lo,hi]
-    interior_checks[str(level)]={"style":"a_provisional","mesh_count":len([o for o in interior.children_recursive if o.type=="MESH"]),
+    interior_checks[str(level)]={"style":"a_direction_confirmed_products_pending","mesh_count":len([o for o in interior.children_recursive if o.type=="MESH"]),
         "beds":4,"bathrooms":2,"unconfirmed_room_uses_preserved":True}
 garden_root=bpy.data.objects["CourtyardDesign"]
 garden_objects=list(garden_root.children)
@@ -224,6 +224,17 @@ for level in (1,2):
     assert any(c["kind"]=="open" and set(c["spaces"])=={"porch","stairwell"} for c in source["connections"])
     assert walls["hall-front"]["b"][0]==P["site_width"]-P["east_bay_width"]
     if level==1:
+        assert "dining-kitchen-divider" not in walls
+        assert bpy.data.objects.get("F1/wall/dining-kitchen-divider") is None
+        assert not any(o["id"] in ("dining-door","kitchen-door") for o in source["openings"])
+        dining_entry=next(o for o in source["openings"] if o["id"]=="dining-entry")
+        assert dining_entry["door_leaf"] is False
+        partition=bpy.data.objects["F1/wall/east-spine"]
+        inverse=partition.matrix_world.inverted()
+        def partition_hit(y):
+            return partition.ray_cast(inverse@Vector((10.1,y,1.2)),inverse.to_3x3()@Vector((1,0,0)))[0]
+        assert partition_hit(11.6) and partition_hit(14.15),"原餐厨门洞仍未封实"
+        assert not partition_hit((walls["east-spine"]["a"][1]+dining_entry["offset"]+dining_entry["width"]/2)/1000),"餐厨北端入口未打通"
         assert spaces["dining"]["nominal_size_mm"]==[4000,3000]
         assert spaces["kitchen"]["nominal_size_mm"]==[4000,2500]
         kw=next(o for o in source["openings"] if o["id"]=="south-kitchen")

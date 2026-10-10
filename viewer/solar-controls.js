@@ -1,9 +1,12 @@
 import * as THREE from 'three';
-import {solarPosition, createNeighbors, windowSamples, directSunSamples, NEIGHBOR_DEFAULTS} from './solar-study.js';
+import {solarPosition, createNeighbors, neighborLayout, windowSamples, directSunSamples, NEIGHBOR_DEFAULTS} from './solar-study.js';
+import {minuteLabel} from './solar-duration.js';
+import {setupSolarDuration,visibleWindowTargets} from './solar-duration-controls.js';
+import {setupSolarRayPreview} from './solar-ray-preview.js';
 
 export function setupSolarControls({parameters, plans, state, scene, roots, skyLight, sunLight, renderer, ground, gardenLights, gardenEmitters, refresh, render}) {
   const $ = selector => document.querySelector(selector);
-  let neighbors, timer;
+  let neighbors, timer,sceneVersion=0;
   const targets = windowSamples(parameters, plans);
   const location = {...parameters.solar_location};
   const heights = {...NEIGHBOR_DEFAULTS};
@@ -21,13 +24,36 @@ export function setupSolarControls({parameters, plans, state, scene, roots, skyL
   };
   rebuildNeighbors();
 
-  function sample(solar) {
-    scene.updateMatrixWorld(true);
-    const objects=[];
-    for(const root of [...roots.values(), neighbors]) root.traverseVisible(obj=>{
-      if(obj.isMesh && obj.castShadow && !obj.userData.glazing_proxy) objects.push(obj);
+  const valid=(showMessage=false)=>{
+    const invalid=[...document.querySelectorAll('#solar-controls input[required]')].find(input=>!input.checkValidity());
+    if(invalid){if(showMessage)invalid.reportValidity();duration.invalidate();return false;}return true;
+  };
+  function objects(){
+    scene.updateMatrixWorld(true);const result=[];
+    for(const root of [...roots.values(),neighbors])root.traverseVisible(obj=>{
+      if(obj.isMesh&&obj.castShadow&&!obj.userData.glazing_proxy)result.push(obj);
     });
-    const result=directSunSamples(targets,solar,objects);
+    return result;
+  }
+  function movablePoses(){
+    const poses=[];
+    for(const [level,root] of roots)root.traverseVisible(obj=>{
+      if(!obj.userData.motion)return;
+      const motion=typeof obj.userData.motion==='string'?JSON.parse(obj.userData.motion):obj.userData.motion;
+      poses.push({level,id:motion.id,position:obj.position.toArray(),quaternion:obj.quaternion.toArray()});
+    });
+    return poses;
+  }
+  const rayPreview=setupSolarRayPreview({scene,objects,render});
+  const duration=setupSolarDuration({targets,valid:()=>valid(true),objects,showObstruction:rayPreview.show,clearObstruction:rayPreview.clear,
+    scenario:()=>({date:$('#solar-date').value,location:{...location},conditions:{model_parameters:parameters,neighbors_enabled:$('#solar-neighbors').checked,
+      neighbors:neighborLayout(parameters,heights),neighbor_base_elevation_m:-parameters.entrance_proposal.yard_drop_mm/1000,
+      garden_visible:state.garden,gate_open:state.gateOpen,movable_parts:movablePoses(),scene_revision:sceneVersion,site_status:'not_surveyed'}}),
+    showTime:minute=>{$('#solar-hour').value=minute;refresh(false);}
+  });
+
+  function sample(solar) {
+    const result=directSunSamples(visibleWindowTargets(targets,$('#solar-window-group').value),solar,objects());
     $('#solar-samples').replaceChildren(...result.map(item=>{
       const row=document.createElement('div');
       const label=document.createElement('span'), value=document.createElement('strong');
@@ -38,16 +64,20 @@ export function setupSolarControls({parameters, plans, state, scene, roots, skyL
   }
 
   function applyLighting() {
+    rayPreview.clear();
     if(state.solar && (state.cut || !state.roof || !['whole','courtyard'].includes(state.view))) state.solar=false;
     $('#solar-enabled').checked=Boolean(state.solar);
+    document.body.classList.toggle('sun-study-active',Boolean(state.solar));
     $('#solar-controls').hidden=!state.solar;
     $('#solar-badge').hidden=!state.solar;
     neighbors.visible=Boolean(state.solar && $('#solar-neighbors').checked);
+    duration.sync(JSON.stringify([$('#solar-date').value,location,heights,$('#solar-neighbors').checked,state.garden,state.gateOpen,sceneVersion]),Boolean(state.solar));
     clearTimeout(timer);
     if(!state.solar) return false;
-    const hour=Number($('#solar-hour').value);
+    if(!valid()){$('#solar-position').textContent='请补全有效的日期和场地条件。';$('#solar-samples').replaceChildren();$('#solar-samples').dataset.status='invalid';return false;}
+    const minute=Number($('#solar-hour').value),hour=minute/60;
     const solar=solarPosition($('#solar-date').value,hour,location);
-    const time=`${String(Math.floor(hour)).padStart(2,'0')}:${String(Math.round(hour%1*60)).padStart(2,'0')}`;
+    const time=minuteLabel(minute);
     $('#solar-time').textContent=time;
     $('#solar-position').textContent=`太阳高度 ${solar.altitude.toFixed(1)}° · 方位 ${solar.azimuth.toFixed(1)}°`;
     $('#solar-badge').textContent=`${$('#solar-date').value} ${time} 北京时间 · ${solar.altitude>0?'日照对比':'太阳在地平线下'}`;
@@ -78,9 +108,10 @@ export function setupSolarControls({parameters, plans, state, scene, roots, skyL
     refresh(true);
   });
   for(const id of ['solar-date','solar-hour','solar-neighbors']) $('#'+id).addEventListener('input',event=>{
-    if(!event.target.checkValidity() || !event.target.value)return;
+    if(!event.target.checkValidity() || !event.target.value){duration.invalidate();return;}
     refresh(false);
   });
+  $('#solar-window-group').addEventListener('change',()=>refresh(false));
   document.querySelectorAll('[data-season]').forEach(button=>button.addEventListener('click',()=>{
     const year=$('#solar-date').value.slice(0,4);
     $('#solar-date').value=`${year}-${button.dataset.season}`;
@@ -88,13 +119,13 @@ export function setupSolarControls({parameters, plans, state, scene, roots, skyL
   }));
   for(const [id,key] of [['solar-latitude','latitude'],['solar-longitude','longitude'],['solar-north','north_rotation_deg']]) {
     $('#'+id).addEventListener('change',event=>{
-      if(!event.target.checkValidity() || !event.target.value)return;
+      if(!event.target.checkValidity() || !event.target.value){duration.invalidate();return;}
       location[key]=Number(event.target.value); refresh(false);
     });
   }
   for(const key of ['north','south','east'])$('#neighbor-'+key).addEventListener('change',event=>{
-    if(!event.target.checkValidity() || !event.target.value)return;
+    if(!event.target.checkValidity() || !event.target.value){duration.invalidate();return;}
     heights[key]=Number(event.target.value); rebuildNeighbors(); refresh(false);
   });
-  return {applyLighting, bounds:()=>neighbors.visible?new THREE.Box3().setFromObject(neighbors):null};
+  return {applyLighting,sceneChanged(){sceneVersion++;applyLighting();},bounds:()=>neighbors.visible?new THREE.Box3().setFromObject(neighbors):null};
 }

@@ -1,13 +1,19 @@
 import {interiorLayout} from './interior-layout.js';
 import {yardElevationAt,siteLayout} from './site-layout.js';
-import {courtyardLayout} from './courtyard-design.js';
+import {courtyardLayout} from './courtyard-layout.js';
+import {circulationLayout} from './circulation-layout.js';
+import {SHOWER_OPENING_M} from './wet-area-details.js';
+import {kitchenFootprint} from './kitchen-layout.js';
 
 export const BODY_RADIUS=.22,EYE_HEIGHT=1.65;
 export const rectangle=([x,y,x1,y1])=>[[x,y],[x1,y],[x1,y1],[x,y1]];
 const inside=([x,y,x1,y1],a,b,pad=0)=>a>=x+pad&&a<=x1-pad&&b>=y+pad&&b<=y1-pad;
+const boundsOf=o=>o.bounds??=o.polygon.reduce((b,[x,y])=>[Math.min(b[0],x),Math.min(b[1],y),Math.max(b[2],x),Math.max(b[3],y)],[Infinity,Infinity,-Infinity,-Infinity]);
 
 export function overlap(a,b) {
   if(a.top<=b.bottom+.004||b.top<=a.bottom+.004)return false;
+  const aa=boundsOf(a),bb=boundsOf(b);
+  if(aa[2]<=bb[0]||bb[2]<=aa[0]||aa[3]<=bb[1]||bb[3]<=aa[1])return false;
   for(const polygon of [a.polygon,b.polygon])for(let i=0;i<polygon.length;i++) {
     const p=polygon[i],q=polygon[(i+1)%polygon.length],axis=[p[1]-q[1],q[0]-p[0]],length=Math.hypot(...axis);
     const project=poly=>poly.map(v=>(v[0]*axis[0]+v[1]*axis[1])/length);
@@ -19,6 +25,9 @@ export function overlap(a,b) {
 
 export function touchesBody(obstacle,x,y,z,r=BODY_RADIUS) {
   if(obstacle.top<=z+.08||obstacle.bottom>=z+1.8)return false;
+  // 先排除远处构件，只有身边的墙和家具进入多边形碰撞检查。
+  const b=boundsOf(obstacle);
+  if(x+r<=b[0]||x-r>=b[2]||y+r<=b[1]||y-r>=b[3])return false;
   // 八边形近似人体占位，半径是浏览体验参数，不是无障碍或净宽验收值。
   const polygon=Array.from({length:8},(_,i)=>[x+Math.cos(i*Math.PI/4)*r,y+Math.sin(i*Math.PI/4)*r]);
   return overlap(obstacle,{polygon,bottom:z+.08,top:z+1.8});
@@ -56,10 +65,11 @@ export function createWalkWorld(p,plans) {
       const [x,y,x1,y1]=item.bounds,owner=`${plan.level}:${item.id}`;
       const add=(bounds,height=1,bottom=.024,id=owner)=>box(bounds,base+bottom,base+height,id,'家具');
       switch(item.type) {
+        case 'wall-art':break;
+        case 'storage-cabinet':add(item.bounds,item.height,.026,owner+'/cabinet-0');break;
         case 'kitchen':
-          add([x,y1-item.depth,x1-item.depth,y1],.855,.10,owner+'/cabinet-0');
-          add([x1-item.depth,y,x1,y1],.855,.10,owner+'/cabinet-1');break;
-        case 'shower':add([x1-.02,y+.87,x1+.006,y1],2.05);break;
+          kitchenFootprint(item).forEach((bounds,i)=>add(bounds,.855,.10,owner+`/cabinet-${i}`));break;
+        case 'shower':add([x1-.02,y+SHOWER_OPENING_M,x1+.006,y1],2.05);break;
         case 'dining-set':
           add(item.bounds,.77);for(const a of [(x+x1)/2-.43,(x+x1)/2+.43])for(const q of [(y+y1)/2-.68,(y+y1)/2+.68])add([a-.23,q-.23,a+.23,q+.23],.86);break;
         case 'desk':add(item.bounds,.76);add([(x+x1)/2-.23,y-.54,(x+x1)/2+.23,y-.08],.86);break;
@@ -73,6 +83,7 @@ export function createWalkWorld(p,plans) {
     }
     const site=siteLayout(p,plans[0]);
     for(const x of site.columns)box([x-site.columnWidth/2,site.porchY-site.columnWidth/2,x+site.columnWidth/2,site.porchY+site.columnWidth/2],base,base+3,`column/${plan.level}`,'门廊柱');
+    for(const light of circulationLayout(p,plan).items)box(light.bounds,base+light.bottom,base+light.bottom+light.height,light.id,'通行灯具');
   }
   const garden=courtyardLayout(p,plans[0]);
   for(const bed of garden.beds)box(bed.bounds,-.6,0,bed.id,'花池');
@@ -113,7 +124,10 @@ export function createWalkWorld(p,plans) {
   }
   function move(position,dx,dy,dynamic=[]) {
     let pos={...position};const steps=Math.max(1,Math.ceil(Math.hypot(dx,dy)/.045));
-    const allowed=(x,y)=>{const z=surface(x,y,pos.z);return z!==null&&!obstacles.concat(dynamic).some(o=>touchesBody(o,x,y,z))?z:null;};
+    const x0=Math.min(pos.x,pos.x+dx)-BODY_RADIUS,y0=Math.min(pos.y,pos.y+dy)-BODY_RADIUS;
+    const x1=Math.max(pos.x,pos.x+dx)+BODY_RADIUS,y1=Math.max(pos.y,pos.y+dy)+BODY_RADIUS;
+    const nearby=obstacles.concat(dynamic).filter(o=>{const b=boundsOf(o);return b[0]<x1&&b[2]>x0&&b[1]<y1&&b[3]>y0;});
+    const allowed=(x,y)=>{const z=surface(x,y,pos.z);return z!==null&&!nearby.some(o=>touchesBody(o,x,y,z))?z:null;};
     for(let i=0;i<steps;i++) {
       const x=pos.x+dx/steps,y=pos.y+dy/steps,z=allowed(x,y);
       if(z!==null){pos={x,y,z};continue;}

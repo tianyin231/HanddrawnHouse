@@ -1099,7 +1099,7 @@
     },
     {
       "id": "north-living",
-      "label": "起居厅",
+      "label": "开放餐厨",
       "polygon": [
         [
           4200,
@@ -1120,6 +1120,7 @@
       ],
       "color": "#e4ddd1",
       "evidence": "inferred",
+      "use": "kitchen-dining",
       "dimension_basis": "外墙按外缘控制，分间含墙尺寸按共享墙中心分摊；不把含墙尺寸当成净空",
       "nominal_size_mm": [
         6500,
@@ -1494,6 +1495,11 @@
       "reference_image": "references/ensuite-correction.png"
     },
     {
+      "id": "upper-kitchen",
+      "status": "inferred",
+      "source": "按用户提出的方向，将二层原起居厅改为开放餐厨候选布置，保留与厅堂敞开的关系；厨房不在一层厨房正上方，给排水、排烟路径及灶具能源待核，未开孔或预设主管。"
+    },
+    {
       "id": "courtyard-void",
       "status": "known",
       "source": "用户确认院子上方挑空，不铺二层楼板"
@@ -1540,7 +1546,7 @@
     "south_neighbor_floors": 1,
     "issues": [
       "北排中间卧室仅北侧小高窗，邻墙高度未知，直接采光尚未解决；借厅光不能替代直接采光",
-      "二层北侧起居区同样需要复核北窗效果；二层天窗不能直接解决一层暗卧",
+      "二层北侧开放餐厨同样需要复核北窗效果；二层天窗不能直接解决一层暗卧",
       "窗尺寸为建议，未扣窗框评估有效采光面积，展示照明不代表真实日照"
     ],
     "confirmed_context": {
